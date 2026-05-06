@@ -7,6 +7,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "../src/downloader.hpp"
+#include "../src/resources.hpp"
 #include "../src/tilekey.hpp"
 
 namespace raytiles {
@@ -18,6 +19,8 @@ namespace raytiles {
         float skirt_size = 0.05f;
         float update_distance = 1000.0f * 1000.0f;
         float update_height = 500.0f;
+        int anchor_x_tile = 1223;
+        int anchor_z_tile = 828;
 
         std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
         std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
@@ -70,9 +73,6 @@ namespace raytiles {
         Shader displacement_shader;
         pool tile_downloader;
 
-        int anchor_x_tile = 1223;
-        int anchor_z_tile = 828;
-
         int cam_pos_loc = -1;
         int ambient_loc = -1;
         int fog_color_log = -1;
@@ -93,17 +93,21 @@ namespace raytiles {
         ~streamer();
 
         void update(const Camera3D &camera);
+
         void draw(const Camera3D &camera);
+
         void debug(const Camera3D &camera);
 
     private:
-        loading_tile spawn(const TileKey &tile);
-
         void process_loaded_tiles();
 
         void process_current_location();
 
         void remove_unused_tiles();
+
+        loading_tile spawn(const TileKey &tile);
+
+        [[nodiscard]] bool is_tile_covered(const TileKey &key) const;
     };
 }
 

@@ -4,7 +4,7 @@
 int main() {
     InitWindow(800, 600, "raytiles");
     const raytiles::config conf;
-    const raytiles::provider provider();
+    const raytiles::provider provider("");
     raytiles::streamer streamer(conf, provider);
 
     Camera3D camera;

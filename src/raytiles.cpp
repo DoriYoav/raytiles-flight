@@ -11,6 +11,8 @@
 #include <raylib.h>
 #include <chrono>
 
+#include "resources.hpp"
+
 using namespace std::chrono_literals;
 
 namespace raytiles {
@@ -201,14 +203,13 @@ void main()
             return item.second.done;
         });
 
-        std::erase_if(loading_tiles, [&](const auto &item) {
-            return item.second.done;
-        });
+        // todo unload rendering is done only if not in required but also got replacement
+        // std::erase_if(loading_tiles, [&](const auto &item) {
+        //     return item.second.done;
+        // });
     }
 
     void streamer::process_current_location() {
-        std::vector<TileKey> new_desired_keys;
-        new_desired_keys.reserve(512);
         desired_keys.clear();
         desired_keys.reserve(512);
 
@@ -216,7 +217,6 @@ void main()
         auto subdivide = [&](auto &self, const int zoom, const int tx, const int tz) -> void {
             // no need for calculations, this is the last zoom
             if (zoom == conf.max_zoom) {
-                new_desired_keys.push_back({zoom, tx, tz});
                 desired_keys.insert({zoom, tx, tz});
                 return;
             }
@@ -231,7 +231,6 @@ void main()
             // check against the next zoom distance threshold, if it's far enough,
             // add to the list, otherwise subdivide into 4 children
             if (ddx * ddx + ddz * ddz >= tile_distances.at(zoom + 1)) {
-                new_desired_keys.push_back({zoom, tx, tz});
                 desired_keys.insert({zoom, tx, tz});
                 return;
             }
@@ -253,16 +252,6 @@ void main()
         for (int dx = -r; dx <= r; ++dx)
             for (int dz = -r; dz <= r; ++dz)
                 if (dz * dz + dx * dx < allowed_radius) subdivide(subdivide, conf.base_zoom, current_tile_x + dx, current_tile_z + dz);
-
-
-        // sort for searching (still cheaper than set? YES, set required the heap and O(n log n) for searching)
-        // std::ranges::sort(new_desired_keys);
-
-        // remove from desired those that not in new desired
-        // std::erase_if(desired_tiles, [&](const auto &item) {
-        //     const auto [key, entity] = item;
-        //     return !std::ranges::binary_search(new_desired_keys, key);
-        // });
 
         // spawn new if not in rendering list
         for (const auto &key: desired_keys) {
@@ -289,14 +278,14 @@ void main()
                 continue;
             }
 
-            // todo are they still needed?
-            // if (!desired_tiles.contains(key)) {
-            //     TraceLog(LOG_INFO, "tile %d/%d/%d is already stale when loaded - the tile will not be display and resources will be freed", tile.zoom, tile.x,
-            //              tile.z);
-            //     UnloadImage(tex_img);
-            //     UnloadImage(height_img);
-            //     continue;
-            // }
+            // no longer needed
+            if (!desired_keys.contains(key)) {
+                TraceLog(LOG_INFO, "tile %d/%d/%d is already stale when loaded - the tile will not be display and resources will be freed", tile.zoom, tile.x,
+                         tile.z);
+                UnloadImage(tex_img);
+                UnloadImage(height_img);
+                continue;
+            }
 
             // now it safe to do the heavy load...
             const Texture2D texture_tex = LoadTextureFromImage(tex_img);
@@ -305,7 +294,8 @@ void main()
             SetTextureWrap(texture_tex, TEXTURE_WRAP_CLAMP);
             SetTextureWrap(height_tex, TEXTURE_WRAP_CLAMP);
 
-            // need no more todo keeping the heightmap for querying the ground height
+            // need no more
+            // todo keeping the heightmap for querying the ground height
             UnloadImage(tex_img);
             UnloadImage(height_img);
 
@@ -327,8 +317,8 @@ void main()
     loading_tile streamer::spawn(const TileKey &tile) {
         TraceLog(LOG_INFO, "spawn tile zoom=%d x=%d z=%d", tile.zoom, tile.x, tile.z);
         const auto scale = 1 << (tile.zoom - conf.base_zoom);
-        const auto tx = tile.x + anchor_x_tile * scale;
-        const auto tz = tile.z + anchor_z_tile * scale;
+        const auto tx = tile.x + conf.anchor_x_tile * scale;
+        const auto tz = tile.z + conf.anchor_z_tile * scale;
 
         const auto tx_path = std::vformat(conf.texture_cache_path, std::make_format_args(tile.zoom, tx, tz));
         const auto hm_path = std::vformat(conf.heightmap_cache_path, std::make_format_args(tile.zoom, tx, tz));
@@ -353,5 +343,26 @@ void main()
 
         TraceLog(LOG_INFO, "tile %d,%d,%d position %f,%f", t.zoom, t.x, t.z, t.tx, t.tz);
         return t;
+    }
+
+
+    bool streamer::is_tile_covered(const TileKey &key) const {
+        const auto contains = [&](const int zoom, const int x, const int z) { return rendering_tiles.contains(TileKey{zoom, x, z}); };
+
+        // check parent
+        if (key.zoom > conf.base_zoom) {
+            if (contains(key.zoom - 1, key.x >> 1, key.z >> 1)) return true;
+        }
+
+        // check children
+        if (key.zoom < conf.max_zoom) {
+            const int child_x = key.x << 1;
+            const int child_z = key.z << 1;
+            if (contains(key.zoom + 1, child_x, child_z) && contains(key.zoom + 1, child_x + 1, child_z) && contains(key.zoom + 1, child_x, child_z + 1) &&
+                contains(key.zoom + 1, child_x + 1, child_z + 1)) {
+                return true;
+            }
+        }
+        return false;
     }
 } // namespace raytiles
