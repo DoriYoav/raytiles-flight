@@ -11,8 +11,6 @@
 #include <raylib.h>
 #include <chrono>
 
-#include "resources.hpp"
-
 using namespace std::chrono_literals;
 
 namespace raytiles {

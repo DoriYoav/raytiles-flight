@@ -7,7 +7,6 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "../src/downloader.hpp"
-#include "../src/resources.hpp"
 #include "../src/tilekey.hpp"
 
 namespace raytiles {

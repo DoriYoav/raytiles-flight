@@ -1,10 +1,17 @@
 #include "raytiles.h"
 #include "rlgl.h"
 
+static std::string required_env(const char *name, std::string_view label) {
+  if (const char *value = std::getenv(name); value && *value) {
+    return value;
+  }
+  throw std::runtime_error(std::format("missing {} token in options or environment variables", label));
+}
+
 int main() {
     InitWindow(800, 600, "raytiles");
     const raytiles::config conf;
-    const raytiles::provider provider("");
+    const raytiles::provider provider(required_env("MAPBOX_TOKEN", "mapbox token"));
     raytiles::streamer streamer(conf, provider);
 
     Camera3D camera;
