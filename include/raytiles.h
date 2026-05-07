@@ -38,6 +38,10 @@ struct config {
   /// neighboring tiles at different LODs.
   float skirt_size = 15.0f;
 
+  /// Scaling the heightmap by this factor to increase or reduce the real height
+  /// into desired (drama factor)
+  float height_scale = 1.0f;
+
   /// Squared XZ distance the camera must travel before the desired-tile set
   /// is recomputed. Keep this large enough that small movements don't churn
   /// the working set.
