@@ -5,18 +5,15 @@ static std::string required_env(const char *name, std::string_view label) {
   if (const char *value = std::getenv(name); value && *value) {
     return value;
   }
-  throw std::runtime_error(std::format(
-      "missing {} token in options or environment variables", label));
+  throw std::runtime_error(std::format("missing {} token in options or environment variables", label));
 }
 
 inline void CustomLogCallback(const int logLevel, const char *text, const va_list args) {
   // get rid of raylib internal annoying messages
   if (logLevel == LOG_INFO) {
-    if (strstr(text, "uploaded successfully") != nullptr ||
-        strstr(text, "loaded successfully") != nullptr ||
-        strstr(text, "Unloaded") != nullptr) {
+    if (strstr(text, "uploaded successfully") != nullptr || strstr(text, "loaded successfully") != nullptr || strstr(text, "Unloaded") != nullptr) {
       return;
-        }
+    }
   }
   switch (logLevel) {
     case LOG_DEBUG:
@@ -42,10 +39,11 @@ inline void CustomLogCallback(const int logLevel, const char *text, const va_lis
 int main() {
   SetTraceLogCallback(CustomLogCallback);
   SetTraceLogLevel(LOG_DEBUG);
+
   InitWindow(800, 600, "raytiles");
+
   const raytiles::config conf;
-  const raytiles::provider provider(
-      required_env("MAPBOX_TOKEN", "mapbox token"));
+  const raytiles::provider provider(required_env("MAPBOX_TOKEN", "mapbox token"));
   raytiles::streamer streamer(conf, provider);
 
   Camera3D camera;
