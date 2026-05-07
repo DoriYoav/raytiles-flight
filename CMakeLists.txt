@@ -4,8 +4,10 @@ project(raytiles)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-list(APPEND CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include")
-list(APPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include")
+if (APPLE)
+    list(APPEND CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include")
+    list(APPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include")
+endif ()
 
 include(FetchContent)
 
@@ -37,7 +39,7 @@ add_library(${PROJECT_NAME} STATIC
         src/tilekey.hpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib)
 target_link_libraries(${PROJECT_NAME} PUBLIC httplib) # make private
 
