@@ -6,7 +6,6 @@
 #include <chrono>
 #include <format>
 #include <future>
-#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -101,8 +100,7 @@ void main()
 streamer::streamer(config conf, provider maps_provider)
     : conf(std::move(conf)),
       maps_provider(std::move(maps_provider)),
-      displacement_shader(LoadShaderFromMemory(vertex_shader, fragment_shader)),
-      // displacement_shader(LoadShader("terrain.vs", "terrain.fs")),
+      displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
       tile_downloader(4) {
   const auto distance = static_cast<float>(conf.rendering_radius) * conf.base_zoom_tile_size;
 
@@ -119,29 +117,23 @@ streamer::streamer(config conf, provider maps_provider)
     const float size = tile_sizes.at(zoom);
     const float skirt_size = zoom == conf.base_zoom ? size * conf.skirt_size * 3.0f : size * conf.skirt_size;
 
-    models[zoom] = LoadModelFromMesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res));
-    models[zoom].materials[0].shader = displacement_shader;
+    models[zoom] = raii::load_model_from_mesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res));
+    models[zoom]->materials[0].shader = *displacement_shader;
   }
 
   // cache shader locations
-  cam_pos_loc = GetShaderLocation(displacement_shader, "cameraPosition");
-  ambient_loc = GetShaderLocation(displacement_shader, "ambientLight");
-  fog_color_log = GetShaderLocation(displacement_shader, "fogColor");
+  cam_pos_loc = GetShaderLocation(*displacement_shader, "cameraPosition");
+  ambient_loc = GetShaderLocation(*displacement_shader, "ambientLight");
+  fog_color_log = GetShaderLocation(*displacement_shader, "fogColor");
 
   // configure the slot the heightmap data use - MATERIAL_MAP_ROUGHNESS slot
   constexpr int heightmapSlotIndex = MATERIAL_MAP_ROUGHNESS;
-  SetShaderValue(displacement_shader, GetShaderLocation(displacement_shader, "heightMap"), &heightmapSlotIndex, SHADER_UNIFORM_INT);
+  SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightMap"), &heightmapSlotIndex, SHADER_UNIFORM_INT);
 
   constexpr float heightScale = 1.0;
-  SetShaderValue(displacement_shader, GetShaderLocation(displacement_shader, "heightScale"), &heightScale, SHADER_UNIFORM_FLOAT);
+  SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightScale"), &heightScale, SHADER_UNIFORM_FLOAT);
 
   TraceLog(LOG_INFO, "raytiles streamer initialized");
-}
-
-streamer::~streamer() {
-  // check if there are futures or rendering textures to clean
-  for (const auto &val : models | std::views::values) UnloadModel(val);
-  UnloadShader(displacement_shader);
 }
 
 void streamer::update(const Camera3D &camera) {
@@ -166,24 +158,22 @@ void streamer::draw(const Camera3D &camera) {
   for (const auto &[key, tile] : rendering_tiles) {
     if (tile.done) continue;
 
-    SetShaderValue(displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
+    SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
 
     // set the camera location (for distance -> fog)
-    SetShaderValue(displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
+    SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
 
     // set the ambient color (weather/day/night/...)
-    // const float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-    SetShaderValue(displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
+    SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
 
     // set the fog color (to match the sky)
-    // const float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-    SetShaderValue(displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
+    SetShaderValue(*displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
 
     const auto &model = models.at(key.zoom);
-    model.materials[0].maps[MATERIAL_MAP_ALBEDO].texture = tile.tx_texture;
-    model.materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = tile.hm_texture;
+    model->materials[0].maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
+    model->materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
 
-    DrawModel(model, {tile.tx, 0.0f, tile.tz}, 1.0f, WHITE);
+    DrawModel(*model, {tile.tx, 0.0f, tile.tz}, 1.0f, WHITE);
 
     const auto size = tile_sizes.at(key.zoom);
     DrawCubeWires({tile.tx, 0.0f, tile.tz}, size, 200.0f, size, RED);
@@ -205,17 +195,9 @@ void streamer::debug(const Camera3D &camera) {
 void streamer::remove_unused_tiles() {
   std::erase_if(loading_tiles, [&](const auto &item) { return item.second.done; });
 
-  // todo replace the resource with RAII and get rid of this side effect
   std::erase_if(rendering_tiles, [&](const auto &item) {
-    // if (!item.second.done) return false;
     if (desired_keys.contains(item.first)) return false;
-    // todo or covered or not in its distance...
-    //[[nodiscard]] bool is_tile_out_of_range(const TileKey& key) const {
-    //    return tile_distance(last_position, key.zoom, key.x, key.z) > tile_threshold_for_zoom(key.zoom);
-    // }
     if (!is_tile_covered(item.first)) return false;
-    UnloadTexture(item.second.tx_texture);
-    UnloadTexture(item.second.hm_texture);
     return true;
   });
 }
@@ -277,17 +259,19 @@ void streamer::process_loaded_tiles() {
     // both should be ready
     if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready) continue;
 
-    const Image tex_img = tile.tx_future.get();
-    const Image height_img = tile.hm_future.get();
+    // take ownership of the decoded images via RAII; they will unload automatically
+    // on every exit path below. mark the loading_tile done so we never revisit the
+    // future (avoids double-free on shared_future re-access).
+    raii::image tex_img{tile.tx_future.get()};
+    raii::image height_img{tile.hm_future.get()};
+    tile.done = true;
 
     // are the images valid (both!!!)
-    if (!IsImageValid(tex_img) || !IsImageValid(height_img)) {
+    if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
       TraceLog(LOG_WARNING,
                "failed to load tile %d/%d/%d - the tile will not be display in "
                "next frame",
                tile.zoom, tile.x, tile.z);
-      UnloadImage(tex_img);
-      UnloadImage(height_img);
       continue;
     }
 
@@ -297,25 +281,19 @@ void streamer::process_loaded_tiles() {
                "tile %d/%d/%d is already stale when loaded - the tile will not "
                "be display and resources will be freed",
                tile.zoom, tile.x, tile.z);
-      // UnloadImage(tex_img);
-      // UnloadImage(height_img);
       continue;
     }
 
     // now it safe to do the heavy load...
-    const Texture2D texture_tex = LoadTextureFromImage(tex_img);
-    const Texture2D height_tex = LoadTextureFromImage(height_img);
+    raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
+    raii::texture height_tex = raii::load_texture_from_image(*height_img);
 
-    SetTextureWrap(texture_tex, TEXTURE_WRAP_CLAMP);
-    SetTextureWrap(height_tex, TEXTURE_WRAP_CLAMP);
+    SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
+    SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
 
-    // need no more
     // todo keeping the heightmap for querying the ground height
-    UnloadImage(tex_img);
-    UnloadImage(height_img);
-
-    tile.done = true;  // will be cleaned next frame
-    rendering_tiles[key] = loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, texture_tex, height_tex, false};
+    rendering_tiles.insert_or_assign(
+        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), false});
     break;  // only one per frame to avoid spikes, the rest will be processed in next frames
   }
 }

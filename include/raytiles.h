@@ -7,6 +7,7 @@
 #include "raylib.h"
 #include "raymath.h"
 #include "../src/downloader.hpp"
+#include "../src/raii.hpp"
 #include "../src/tilekey.hpp"
 
 namespace raytiles {
@@ -61,15 +62,15 @@ namespace raytiles {
         int zoom;
         float tx;
         float tz;
-        Texture2D tx_texture;
-        Texture2D hm_texture;
+        raii::texture tx_texture;
+        raii::texture hm_texture;
         bool done;
     };
 
     class streamer {
         config conf;
         provider maps_provider;
-        Shader displacement_shader;
+        raii::shader displacement_shader;
         pool tile_downloader;
 
         int cam_pos_loc = -1;
@@ -79,7 +80,7 @@ namespace raytiles {
       float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
 
-        std::map<int, Model> models = {};
+        std::map<int, raii::model> models = {};
         std::map<int, float> tile_sizes = {};
         std::map<int, float> tile_distances = {};
 
@@ -91,7 +92,7 @@ namespace raytiles {
     public:
         explicit streamer(config conf, provider maps_provider);
 
-        ~streamer();
+        ~streamer() = default;
 
         void update(const Camera3D &camera);
 
