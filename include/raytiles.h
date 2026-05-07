@@ -1,3 +1,6 @@
+/// @file raytiles.h
+/// Public API for the raytiles library: stream a 3D world built from satellite
+/// imagery and heightmap tiles around a moving camera and render it via raylib.
 #ifndef RAYTILES_LIBRARY_H
 #define RAYTILES_LIBRARY_H
 #include <memory>
@@ -9,46 +12,136 @@
 
 namespace raytiles {
 
+/// Tunable parameters for a `streamer` instance. Everything has a sensible
+/// default; override fields before constructing the streamer.
+///
+/// All distances are in raylib world units (1 unit = 1 meter at base zoom in
+/// the default configuration).
 struct config {
+  /// Lowest level-of-detail zoom that will ever be loaded. Tiles outside the
+  /// camera's near radius are kept at this zoom to bound the working set.
   int base_zoom = 11;
+
+  /// Highest level-of-detail zoom available. Tiles directly under the camera
+  /// are subdivided up to this zoom.
   int max_zoom = 14;
+
+  /// World size (in meters) of one tile at `base_zoom`. Tiles at higher zooms
+  /// are scaled by `1 / (1 << (zoom - base_zoom))`.
   float base_zoom_tile_size = 16600.0f;
+
+  /// Radius, in `base_zoom` tiles, of the disc of tiles loaded around the
+  /// camera. Larger values = more tiles in flight = more memory / bandwidth.
   int rendering_radius = 7;
+
+  /// Skirt geometry overlap factor (per side) used to hide cracks between
+  /// neighboring tiles at different LODs.
   float skirt_size = 10.0f;
+
+  /// Squared XZ distance the camera must travel before the desired-tile set
+  /// is recomputed. Keep this large enough that small movements don't churn
+  /// the working set.
   float update_distance = 1000.0f * 1000.0f;
+
+  /// Altitude delta (in meters) that triggers a desired-set recomputation,
+  /// independent of `update_distance`. Lets you stream new LODs as you climb
+  /// or descend without horizontal motion.
   float update_height = 500.0f;
+
+  /// Wall-clock budget (in seconds) per frame for promoting downloaded tiles
+  /// into GPU resources. Caps the cost of a single bursty frame.
   double upload_budget_sec = 0.002;
+
+  /// Hard cap on tile promotions per frame, on top of `upload_budget_sec`.
+  /// Whichever limit is hit first stops the loop.
   int max_uploads_per_frame = 8;
+
+  /// Number of background download workers. Downloads are I/O-bound so it's
+  /// safe to use more threads than CPU cores; 4 is a reasonable default for
+  /// HTTP keep-alive against a single host.
   int download_threads = 4;
+
+  /// World-space anchor in tile coordinates at `base_zoom`. The streamer
+  /// translates tile XY to world XZ relative to this anchor so the world
+  /// origin is wherever you want it (e.g. your runway).
   int anchor_x_tile = 1223;
   int anchor_z_tile = 828;
+
+  /// Near / far clip planes used by the displacement shader for fog and
+  /// depth precision tuning. Match these to your camera setup.
   double near_plane = 1;
   double far_plane = 100000;
+
+  /// Generate trilinear / anisotropic mipmaps for the albedo texture on
+  /// upload. Strongly recommended; avoids shimmering at distance.
   bool use_mipmap = true;
+
+  /// Skip TLS certificate verification for tile downloads. Only useful for
+  /// local proxies; never enable against a real server.
   bool allow_insecure_tls = false;
+
+  /// Vertical drop (in meters) of the skirt geometry below each tile's edge.
+  /// Larger values hide cracks more reliably but cost more fill rate.
   float skirt_drop = 1000.0f;
+
+  /// Distance (in meters) at which atmospheric fog starts to fade tiles to
+  /// `set_fog_color`'s color.
   float fog_start = 40000.0f;
+
+  /// Distance (in meters) at which fog reaches full opacity.
   float fog_end = 70000.0f;
 
+  /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
+  /// `std::vformat`. Parent directories are created on demand.
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
   std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
 };
 
+/// Builds tile URLs for the underlying map service (Mapbox by default).
+/// Construct once and pass to `streamer`. Holds the API token.
 class provider {
   std::string token;
 
  public:
+  /// @param token API token for the map service. Must be non-empty.
   explicit provider(std::string token);
 
+  /// Returns the URL path for the satellite tile at `(zoom, x, z)`.
   std::string texture(int zoom, int x, int z) const;
 
+  /// Returns the URL path for the heightmap (RGB-encoded elevation) tile at
+  /// `(zoom, x, z)`.
   std::string heightmap(int zoom, int x, int z) const;
 };
 
 class manager;
 
+/// Per-frame driver that maintains the working set of tiles around a camera
+/// and renders them. One streamer manages one world; create more if you need
+/// independent worlds.
+///
+/// Typical use:
+/// @code
+///   raytiles::streamer s(conf, provider);
+///   while (!WindowShouldClose()) {
+///     s.update(camera);
+///     BeginDrawing();
+///     BeginMode3D(camera);
+///     s.draw(camera);
+///     EndMode3D();
+///     EndDrawing();
+///   }
+/// @endcode
+///
+/// All raylib resources are owned via RAII; destruction is safe and complete.
+/// Movable but not copyable.
 class streamer {
  public:
+  /// @param conf            Tunable parameters; copied into the streamer.
+  /// @param maps_provider   URL builder; copied into the streamer.
+  /// @note A raylib window must already be initialized (`InitWindow`) before
+  ///       constructing a streamer because shader / texture creation requires
+  ///       a live GL context.
   explicit streamer(config conf, provider maps_provider);
   ~streamer();
 
@@ -57,17 +150,39 @@ class streamer {
   streamer(streamer &&) noexcept;
   streamer &operator=(streamer &&) noexcept;
 
+  /// Updates the desired tile set based on the camera and promotes any
+  /// finished downloads into renderable GPU resources. Cheap to call every
+  /// frame; internally rate-limited by `config::upload_budget_sec` and
+  /// `config::max_uploads_per_frame`.
   void update(const Camera3D &camera) const;
+
+  /// Renders all currently loaded tiles. Must be called between
+  /// `BeginMode3D` / `EndMode3D` with the same camera passed to `update`.
   void draw(const Camera3D &camera) const;
+
+  /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc).
+  /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
   void debug(const Camera3D &camera) const;
+
+  /// Draws 3D debug overlays (tile bounds, LOD seams). Call inside the same
+  /// `BeginMode3D` / `EndMode3D` block as `draw`.
   void debug_3d(const Camera3D &camera) const;
+
+  /// Sets the ambient light color sent to the displacement shader. Use this
+  /// to drive day / night / weather lighting changes.
   void set_ambient_light(Color color) const;
+
+  /// Sets the fog color for distance attenuation. Match this to your sky
+  /// color for a seamless horizon.
   void set_fog_color(Color color) const;
-  // returns the terrain altitude under `position`, sampled from the loaded
-  // heightmap. nullopt when no tile covers the queried point. note: each
-  // loaded tile keeps its decoded heightmap image in CPU memory (~192KB) so
-  // this query is a direct pixel read - the trade-off is ~40MB RAM in the
-  // steady state, which is negligible for a desktop flight-sim client.
+
+  /// Returns the terrain altitude (Y world-coordinate) under `position`,
+  /// sampled from the heightmap pixel at the equivalent UV.
+  /// @returns The altitude, or `nullopt` if no loaded tile covers the
+  ///          queried XZ point. Callers should generally fall back to a
+  ///          previous frame's value or to 0 when nullopt is returned.
+  /// @note Each loaded tile keeps its decoded heightmap in CPU RAM (~192KB)
+  ///       so this query is a direct pixel read; cost is O(1).
   [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
  private:

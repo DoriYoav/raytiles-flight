@@ -1,63 +1,113 @@
 # Raytiles
 
-3D tiles world streaming engine for raylib.
+3D world streaming engine for [raylib](https://www.raylib.com/). Pulls satellite imagery and heightmap tiles from a
+map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
+Built for small-scale flight simulators, mission planners, and similar geospatial visualizations.
+
+## Features
+
+- Background tile downloading (HTTP + persistent on-disk cache).
+- Adaptive level-of-detail: more detail near the camera, less far away.
+- GPU-side displacement via a heightmap-driven vertex shader.
+- Per-frame upload budgeting — no GPU stalls on bursty load.
+- Ground-truth altitude queries (`ground_height`) for collision / spawning.
+- RAII everywhere: zero manual `Unload*` calls, zero leaks on error paths.
 
 ## Architecture
 
-The engine streams map tiles (texture + heightmap) around a moving camera and renders them as displaced 3D meshes. It is
-composed of two main parts:
+```
+                     ┌──────────────┐
+   camera position → │   streamer   │ → draw calls (raylib)
+                     └──────┬───────┘
+                            │
+                ┌───────────┴───────────┐
+                │                       │
+        ┌───────▼─────┐         ┌───────▼──────┐
+        │ desired set │         │ download pool│ ── HTTP ──▶ map provider
+        │  (per-frame │         │  (N workers, │       │
+        │    LOD)     │         │   bytes only)│       ▼
+        └───────┬─────┘         └───────┬──────┘   on-disk
+                │                       │           cache
+                │       futures<bytes>  │
+                │   ┌───────────────────┘
+                ▼   ▼
+        ┌──────────────────┐                 ┌──────────────────┐
+        │  loading tiles   │ ── decode ────▶ │ rendering tiles  │
+        │  (futures)       │   + upload      │ (GPU textures)   │
+        └──────────────────┘   on main       └──────────────────┘
+```
 
-- **Download pool**: a thread-safe job queue that fetches tiles in the background, decodes them into `Image` objects,
-  and caches them on disk. Returns `std::shared_future<Image>` so callers can pick up the result when it's ready.
-- **Tile streamer**: drives the per-frame lifecycle of tiles around the camera — deciding what should be loaded,
-  promoting downloads into GPU resources, rendering, and freeing what is no longer needed.
+The streamer runs three logical phases each frame:
 
-### Data Structures
+1. **Decide** — what tiles should be visible at the current camera position?
+2. **Promote** — pick up any finished downloads, decode + upload to the GPU within a wall-clock budget.
+3. **Render** — draw everything currently loaded.
 
-- **Desired set** — `std::unordered_set<TileKey>`: the tiles required for the current camera position, computed every
-  time the camera moves enough. Recomputed wholesale, not incrementally.
-- **Loading map** — `std::unordered_map<TileKey, loading_tile>`: tiles whose images are being downloaded/decoded. Each
-  entry holds two `shared_future<Image>` (texture + heightmap).
-- **Rendering map** — `std::unordered_map<TileKey, loaded_tile>`: tiles whose GPU textures are ready to render.
-  Resources are owned via RAII wrappers (`raii::texture`), so removing an entry from the map automatically frees the GPU
-  memory.
+Workers never touch raylib (it isn't thread-safe). Decoding and GPU uploads happen on the main thread; workers only
+move bytes from the network onto disk and into a `std::shared_future<std::string>`.
 
-There is no separate "stale" list. Cleanup is implicit: dropping an entry from a map runs the RAII destructor.
+## Quick Start
 
-### Life Cycle
+```cpp
+#include "raytiles.h"
 
-#### 1. Update (per frame, on camera movement)
+int main() {
+  InitWindow(1280, 720, "raytiles");
 
-- If the camera moved enough (distance / altitude threshold), rebuild the desired set from the current camera position
-  using LOD subdivision (closer tiles → higher zoom).
-- For every key in the desired set that is not already in the loading or rendering map, enqueue a download job and
-  insert a `loading_tile` into the loading map.
+  raytiles::config conf;
+  conf.rendering_radius = 7;
+  conf.max_zoom = 14;
 
-#### 2. Promote loaded tiles (per frame)
+  raytiles::provider provider(std::getenv("MAPBOX_TOKEN"));
+  raytiles::streamer streamer(conf, provider);
 
-- Walk the loading map; for each entry whose two futures are ready:
-    - Take ownership of the decoded `Image`s into RAII handles.
-    - If either image is invalid → drop it (RAII frees both); the entry will be erased.
-    - If the tile is no longer desired → drop it (RAII frees both); the entry will be erased.
-    - Otherwise → upload to GPU as `raii::texture`, insert a `loaded_tile` into the rendering map.
-- At most one promotion per frame to avoid GPU upload spikes.
+  Camera3D camera = /* ... your camera ... */;
 
-#### 3. Render (per frame)
+  while (!WindowShouldClose()) {
+    streamer.update(camera);
 
-- Iterate the rendering map and draw every loaded tile. Do not filter by desired/covered here — rendering does not
-  decide lifecycle. This keeps frames stable and avoids popping while higher-LOD replacements are still loading.
+    BeginDrawing();
+    ClearBackground(SKYBLUE);
+    BeginMode3D(camera);
+    streamer.draw(camera);
+    EndMode3D();
+    EndDrawing();
+  }
 
-#### 4. Cleanup (per frame)
+  CloseWindow();
+}
+```
 
-- Erase from the loading map any entry that was promoted or dropped in step 2.
-- Erase from the rendering map any entry that is (a) no longer desired **and** (b) covered by an alternate-LOD tile that
-  is already loaded (parent or full set of children). RAII destructors free the GPU resources.
+See `sandbox/main.cpp` for a full runnable example with input handling.
 
-### Ownership & Resource Safety
+## Public API
 
-All raylib resources (`Shader`, `Model`, `Texture2D`, `Image`) are held through `raii::resource<T, Unload>` wrappers in
-`src/raii.hpp`. This means:
+Everything you need is in [`include/raytiles.h`](include/raytiles.h):
 
-- Map erase = automatic resource free.
-- Early returns in error paths cannot leak (no `goto cleanup`, no manual `Unload*` calls).
-- The `streamer` destructor is defaulted; member destruction order handles everything.
+- **`raytiles::config`** — tunables (zoom range, render radius, fog, cache paths, …). All defaults are sensible.
+- **`raytiles::provider`** — wraps your map-service API token; constructs URLs.
+- **`raytiles::streamer`** — the per-frame driver: `update`, `draw`, `debug`, `set_ambient_light`, `set_fog_color`,
+  `ground_height`.
+
+Each field and method is documented inline; build with Doxygen or read the header directly.
+
+## Building
+
+CMake + Ninja, C++23. raylib is fetched and built automatically via `FetchContent`:
+
+```bash
+cmake -B build -G Ninja
+cmake --build build
+```
+
+Outputs `libraytiles.a` plus the `Sandbox` example.
+
+### Required environment
+
+- A Mapbox token (or compatible provider) is needed at runtime; the sandbox reads `MAPBOX_TOKEN` from the environment.
+
+## Tile Cache
+
+Tiles are downloaded once and cached forever under `assets/tiles/{texture,heightmap}/{zoom}/{x}/{z}.png`. The cache
+is the whole point of background streaming: even tiles you fly over briefly stay on disk and load instantly next time.
+Override the layout via `config::texture_cache_path` and `config::heightmap_cache_path`.
