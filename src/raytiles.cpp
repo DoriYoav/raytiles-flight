@@ -193,8 +193,6 @@ void streamer::debug(const Camera3D &camera) {
 }
 
 void streamer::remove_unused_tiles() {
-  std::erase_if(loading_tiles, [&](const auto &item) { return item.second.done; });
-
   std::erase_if(rendering_tiles, [&](const auto &item) {
     if (desired_keys.contains(item.first)) return false;
     if (!is_tile_covered(item.first)) return false;
@@ -252,49 +250,47 @@ void streamer::process_current_location() {
 }
 
 void streamer::process_loaded_tiles() {
-  // read all desired tiles and look for those fully loaded
-  for (auto &[key, tile] : loading_tiles) {
-    if (tile.done) continue;
+  // walk loading tiles; for each entry that finished downloading, either promote
+  // it to rendering_tiles or drop it (invalid / no longer desired). entries are
+  // erased immediately on the iterator.
+  for (auto it = loading_tiles.begin(); it != loading_tiles.end();) {
+    auto &[key, tile] = *it;
 
-    // both should be ready
-    if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready) continue;
+    // both futures must be ready
+    if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready) {
+      ++it;
+      continue;
+    }
 
-    // take ownership of the decoded images via RAII; they will unload automatically
-    // on every exit path below. mark the loading_tile done so we never revisit the
-    // future (avoids double-free on shared_future re-access).
+    // take ownership of the decoded images via RAII; they unload automatically
+    // on every exit path below.
     raii::image tex_img{tile.tx_future.get()};
     raii::image height_img{tile.hm_future.get()};
-    tile.done = true;
 
-    // are the images valid (both!!!)
     if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
-      TraceLog(LOG_WARNING,
-               "failed to load tile %d/%d/%d - the tile will not be display in "
-               "next frame",
-               tile.zoom, tile.x, tile.z);
+      TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", tile.zoom, tile.x, tile.z);
+      it = loading_tiles.erase(it);
       continue;
     }
 
-    // no longer needed
     if (!desired_keys.contains(key)) {
-      TraceLog(LOG_INFO,
-               "tile %d/%d/%d is already stale when loaded - the tile will not "
-               "be display and resources will be freed",
-               tile.zoom, tile.x, tile.z);
+      TraceLog(LOG_INFO, "tile %d/%d/%d became stale before upload - dropping", tile.zoom, tile.x, tile.z);
+      it = loading_tiles.erase(it);
       continue;
     }
 
-    // now it safe to do the heavy load...
+    // upload to GPU and move into rendering_tiles
     raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
     raii::texture height_tex = raii::load_texture_from_image(*height_img);
-
     SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
     SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
 
     // todo keeping the heightmap for querying the ground height
     rendering_tiles.insert_or_assign(
         key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), false});
-    break;  // only one per frame to avoid spikes, the rest will be processed in next frames
+
+    loading_tiles.erase(it);
+    break;  // only one GPU upload per frame to avoid spikes
   }
 }
 
@@ -316,8 +312,7 @@ loading_tile streamer::spawn(const TileKey &tile) {
                         (static_cast<float>(tile.x) + 0.5f) * tile_size,
                         (static_cast<float>(tile.z) + 0.5f) * tile_size,
                         tile_downloader.enqueue_and_load(tx_path, tx_url),
-                        tile_downloader.enqueue_and_load(hm_path, hm_url),
-                        false};
+                        tile_downloader.enqueue_and_load(hm_path, hm_url)};
 
   TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", t.zoom, t.x, t.z, t.tx, t.tz);
   return t;

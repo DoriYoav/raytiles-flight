@@ -53,7 +53,6 @@ namespace raytiles {
         float tz;
         std::shared_future<Image> tx_future;
         std::shared_future<Image> hm_future;
-        bool done;
     };
 
     struct loaded_tile {
