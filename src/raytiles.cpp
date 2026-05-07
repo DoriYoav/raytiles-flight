@@ -436,7 +436,7 @@ void manager::process_loaded_tiles() {
 
     // take ownership of the decoded images via RAII; they unload automatically
     // on every exit path below.
-    raii::image tex_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
+    raii::image tex_img{LoadImageFromMemory(".jpg", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
     raii::image height_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(hm_bytes.data()), static_cast<int>(hm_bytes.size()))};
 
     if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
