@@ -172,11 +172,10 @@ manager::manager(config conf, provider maps_provider)
     const int res = 16 * (1 << idx);
     const float size = tile_sizes[idx];
 
-    float skirt_size = 10.0f;
+    float skirt_size = conf.skirt_size;
     if (zoom == 13) skirt_size /= 2;
     if (zoom == 12) skirt_size /= 4;
     if (zoom == 11) skirt_size /= 8;
-    // const float skirt_size = zoom == conf.base_zoom ? size * conf.skirt_size * 3.0f : size * conf.skirt_size;
 
     models.emplace_back(raii::load_model_from_mesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res)));
     models[idx]->materials[0].shader = *displacement_shader;

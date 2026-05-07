@@ -14,7 +14,7 @@ struct config {
   int max_zoom = 14;
   float base_zoom_tile_size = 16600.0f;
   int rendering_radius = 7;
-  float skirt_size = 0.05f;
+  float skirt_size = 10.0f;
   float update_distance = 1000.0f * 1000.0f;
   float update_height = 500.0f;
   double upload_budget_sec = 0.002;
