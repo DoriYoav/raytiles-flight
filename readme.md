@@ -58,6 +58,6 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 
 ## TODOs
 
-- [ ] support raylib 6.0
+- [x] support raylib 6.0
 - [ ] support web builds (emscripten)
 - [ ] support more providers (TomTom, OpenStreetMap, etc.)
