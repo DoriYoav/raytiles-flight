@@ -16,6 +16,7 @@
 #include <vector>
 #include "raylib.h"
 #include "httplib.h"
+#include "raii.hpp"
 
 namespace raytiles {
     class pool {
@@ -42,17 +43,17 @@ namespace raytiles {
                 }
 
                 try {
-                    Image img;
+                    raii::image img;
                     if (auto body = fetch(img_job.path, img_job.url); body) {
                         // decode the freshly downloaded bytes directly, skipping a disk round-trip.
-                        img = LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(body->data()), static_cast<int>(body->size()));
+                        img.reset(LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(body->data()), static_cast<int>(body->size())));
                         write_atomic(img_job.path, *body);
                     } else {
                         // tile already cached on disk.
-                        img = LoadImage(img_job.path.c_str());
+                        img.reset(LoadImage(img_job.path.c_str()));
                     }
-                    if (img.data == nullptr) throw std::runtime_error("image decode returned empty image: " + img_job.path);
-                    img_job.promise.set_value(img);
+                    if (img->data == nullptr) throw std::runtime_error("image decode returned empty image: " + img_job.path);
+                    img_job.promise.set_value(img.release());
                 } catch (...) {
                     try {
                         img_job.promise.set_exception(std::current_exception());
