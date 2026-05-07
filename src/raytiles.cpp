@@ -166,18 +166,17 @@ void streamer::draw(const Camera3D &camera) {
   for (const auto &[key, tile] : rendering_tiles) {
     if (tile.done) continue;
 
-    // SetShaderValue(displacement_shader, cam_pos_loc, &camera.position,
-    // SHADER_UNIFORM_VEC3);
+    SetShaderValue(displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
 
     // set the camera location (for distance -> fog)
     SetShaderValue(displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
 
     // set the ambient color (weather/day/night/...)
-    const float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+    // const float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     SetShaderValue(displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
 
     // set the fog color (to match the sky)
-    const float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+    // const float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
     SetShaderValue(displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
 
     const auto &model = models.at(key.zoom);

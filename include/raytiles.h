@@ -76,6 +76,9 @@ namespace raytiles {
         int ambient_loc = -1;
         int fog_color_log = -1;
 
+      float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+      float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+
         std::map<int, Model> models = {};
         std::map<int, float> tile_sizes = {};
         std::map<int, float> tile_distances = {};
@@ -85,7 +88,6 @@ namespace raytiles {
         std::unordered_set<TileKey> desired_keys;
         std::unordered_map<TileKey, loading_tile> loading_tiles;
         std::unordered_map<TileKey, loaded_tile> rendering_tiles;
-
     public:
         explicit streamer(config conf, provider maps_provider);
 
