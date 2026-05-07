@@ -6,7 +6,7 @@
 map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
 Built for small-scale flight simulators, mission planners, and similar geospatial visualizations.
 
-Allow streaming any location on Earth.
+Allow streaming any location on Earth up to zoom level 15.
 
 Example video:
 
@@ -62,3 +62,4 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 - [x] support raylib 6.0
 - [ ] support web builds (emscripten)
 - [ ] support more providers (TomTom, OpenStreetMap, etc.)
+- [ ] support more than level 15 zoom
