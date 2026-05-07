@@ -1,6 +1,7 @@
 #ifndef RAYTILES_LIBRARY_H
 #define RAYTILES_LIBRARY_H
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "raylib.h"
@@ -57,7 +58,7 @@ class streamer {
   void debug(const Camera3D &camera) const;
   void set_ambient_light(Color color) const;
   void set_fog_color(Color color) const;
-  [[nodiscard]] float ground_height(Vector3 position) const;
+  [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
  private:
   std::unique_ptr<manager> impl;

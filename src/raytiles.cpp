@@ -7,6 +7,7 @@
 #include <format>
 #include <future>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -288,7 +289,7 @@ void manager::set_fog_color(const Color color) {
   update_shader_uniforms();
 }
 
-float manager::ground_height(const Vector3 position) const {
+std::optional<float> manager::ground_height(const Vector3 position) const {
   // walk from the highest available zoom down to base; whichever zoom holds the
   // tile that contains (position.x, position.z) wins. higher zoom = finer
   // sample, so we prefer it if loaded.
@@ -314,7 +315,7 @@ float manager::ground_height(const Vector3 position) const {
 
     return get_height_from_image(img, px, py);
   }
-  return 0.0f;
+  return std::nullopt;
 }
 
 void manager::process_current_location() {
@@ -389,15 +390,24 @@ void manager::process_loaded_tiles() {
     raii::image height_img{tile.hm_future.get()};
 
     if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
-      TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", tile.zoom, tile.x, tile.z);
+      TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", key.zoom, key.x, key.z);
       it = loading_tiles.erase(it);
       continue;
     }
 
     if (!desired_keys.contains(key)) {
-      TraceLog(LOG_INFO, "tile %d/%d/%d became stale before upload - dropping", tile.zoom, tile.x, tile.z);
+      TraceLog(LOG_INFO, "tile %d/%d/%d became stale before upload - dropping", key.zoom, key.x, key.z);
       it = loading_tiles.erase(it);
       continue;
+    }
+
+    // ensure the heightmap image is in a format get_height_from_image() can
+    // decode. raylib normally gives us R8G8B8 / R8G8B8A8, but a future raylib
+    // upgrade or a custom-cached image could come in something else; convert
+    // once here so ground_height() is never silently wrong.
+    if (height_img->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8 && height_img->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+      TraceLog(LOG_WARNING, "heightmap tile %d/%d/%d arrived as format %d - converting to R8G8B8", key.zoom, key.x, key.z, height_img->format);
+      ImageFormat(&height_img.get(), PIXELFORMAT_UNCOMPRESSED_R8G8B8);
     }
 
     // upload to GPU and move into rendering_tiles. the heightmap CPU image is
@@ -412,8 +422,7 @@ void manager::process_loaded_tiles() {
       SetTextureFilter(*texture_tex, TEXTURE_FILTER_ANISOTROPIC_16X);
     }
 
-    rendering_tiles.insert_or_assign(
-        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img)});
+    rendering_tiles.insert_or_assign(key, loaded_tile{tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img)});
 
     it = loading_tiles.erase(it);
     ++promoted;
@@ -443,15 +452,10 @@ loading_tile manager::spawn(const TileKey &tile) {
   const auto tx_url = maps_provider.texture(tile.zoom, tx, tz);
   const auto hm_url = maps_provider.heightmap(tile.zoom, tx, tz);
 
-  auto t = loading_tile{tile.x,
-                        tile.z,
-                        tile.zoom,
-                        (static_cast<float>(tile.x) + 0.5f) * tile_size,
-                        (static_cast<float>(tile.z) + 0.5f) * tile_size,
-                        tile_downloader.enqueue_and_load(tx_path, tx_url),
-                        tile_downloader.enqueue_and_load(hm_path, hm_url)};
+  auto t = loading_tile{(static_cast<float>(tile.x) + 0.5f) * tile_size, (static_cast<float>(tile.z) + 0.5f) * tile_size,
+                        tile_downloader.enqueue_and_load(tx_path, tx_url), tile_downloader.enqueue_and_load(hm_path, hm_url)};
 
-  TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", t.zoom, t.x, t.z, t.tx, t.tz);
+  TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", tile.zoom, tile.x, tile.z, t.tx, t.tz);
   return t;
 }
 
@@ -463,10 +467,12 @@ bool manager::is_tile_covered(const TileKey &key) const {
     if (contains(key.zoom - 1, key.x >> 1, key.z >> 1)) return true;
   }
 
-  // check children
+  // check children. use multiplication instead of left-shift: signed left-shift
+  // on negative tile indices (which we have around the anchor) is UB even in
+  // C++20.
   if (key.zoom < conf.max_zoom) {
-    const int child_x = key.x << 1;
-    const int child_z = key.z << 1;
+    const int child_x = key.x * 2;
+    const int child_z = key.z * 2;
     if (contains(key.zoom + 1, child_x, child_z) && contains(key.zoom + 1, child_x + 1, child_z) && contains(key.zoom + 1, child_x, child_z + 1) &&
         contains(key.zoom + 1, child_x + 1, child_z + 1)) {
       return true;
@@ -489,6 +495,6 @@ void streamer::draw(const Camera3D &camera) const { impl->draw(camera); }
 void streamer::debug(const Camera3D &camera) const { impl->debug(camera); }
 void streamer::set_ambient_light(const Color color) const { impl->set_ambient_light(color); }
 void streamer::set_fog_color(const Color color) const { impl->set_fog_color(color); }
-float streamer::ground_height(const Vector3 position) const { return impl->ground_height(position); }
+std::optional<float> streamer::ground_height(const Vector3 position) const { return impl->ground_height(position); }
 
 }  // namespace raytiles

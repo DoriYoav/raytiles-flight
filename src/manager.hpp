@@ -2,6 +2,7 @@
 #define RAYTILES_MANAGER_HPP
 
 #include <future>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -15,9 +16,6 @@
 namespace raytiles {
 
 struct loading_tile {
-  int x;
-  int z;
-  int zoom;
   float tx;
   float tz;
   std::shared_future<Image> tx_future;
@@ -25,9 +23,6 @@ struct loading_tile {
 };
 
 struct loaded_tile {
-  int x;
-  int z;
-  int zoom;
   float tx;
   float tz;
   raii::texture tx_texture;
@@ -44,7 +39,7 @@ class manager {
   void debug(const Camera3D &camera);
   void set_ambient_light(Color color);
   void set_fog_color(Color color);
-  [[nodiscard]] float ground_height(Vector3 position) const;
+  [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
  private:
   void process_loaded_tiles();

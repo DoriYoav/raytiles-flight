@@ -11,48 +11,6 @@ smell, micro-perf, hygiene).
 
 ## Correctness
 
-### [H] SSL certificate verification disabled on Apple
-
-`downloader.hpp:78-80` unconditionally disables verification on `__APPLE__`. This is a security regression and should
-not ship. Make it opt-in via `config` (e.g., `config.allow_insecure_tls = false`) so users can enable it explicitly
-during local debugging only.
-
-### [M] `ground_height` returns `0.0f` for "tile not loaded" - BY DESIGN, BUT MUST BE DOCUMENTED
-
-`raytiles.cpp:306` returns `0.0f` as both "no tile" and "ocean at sea level". A flight-sim caller can't tell apart.
-Change to `std::optional<float>` or document the sentinel value at minimum. (`-10000.0f` is the lowest valid Mapbox
-value; pick a sentinel below it if you must keep `float`.)
-
-### [M] `get_height_from_image` silently returns 0 on unsupported pixel formats - BY DESIGN, BUT MUST BE DOCUMENTED
-
-`raytiles.cpp:43-44`. Currently raylib decodes Mapbox PNGs as R8G8B8 or R8G8B8A8, but a future raylib upgrade or
-cache-loaded format change can break this silently — terrain becomes flat at sea level. Either log a warning once (with
-format value), or convert at load time:
-
-```cpp
-if (img.format != PIXELFORMAT_UNCOMPRESSED_R8G8B8) ImageFormat(&img, PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-```
-
-in `process_loaded_tiles` before storing.
-
-### [L] `is_tile_covered` relies on signed shift semantics
-
-`raytiles.cpp:432, 437-438` use `key.x >> 1`, `key.z >> 1`, `key.x << 1`, `key.z << 1` for negative tile indices. C++20
-made arithmetic right-shift on signed well-defined (floor toward -∞) and left-shift well-defined on negative is **still
-UB**. `int x = -1; x << 1;` is UB. Use `static_cast<unsigned>(x) << 1`, or `x * 2` (defined and the compiler folds it
-identically). Fix the children-coordinate computation:
-
-```cpp
-const int child_x = key.x * 2;
-const int child_z = key.z * 2;
-```
-
-### [L] `loaded_tile` / `loading_tile` duplicate the TileKey fields
-
-Both structs carry `int x, z, zoom` — but they are stored as values in `std::unordered_map<TileKey, ...>` and the key
-already has these. Wastes memory and risks drift if anyone updates one but not the other. Drop the duplicates and pull
-them from the key during iteration.
-
 ---
 
 ## Memory
@@ -75,16 +33,6 @@ grows until the wave settles. Consider capping how many spawns per frame (alread
 Now retained for `ground_height`. With ~200 tiles in the steady state that's roughly 38MB. Acceptable for a desktop app,
 but worth documenting and optionally exposing a config flag (`keep_heightmap = true`) to disable for clients that don't
 need ground queries.
-
-### [L] `loaded_tile.done` adds 1 byte + alignment padding for nothing
-
-See correctness section — also a small struct-size waste across hundreds of entries.
-
-### [L] `models`, `tile_sizes`, `tile_distances` are `std::map<int, X>`
-
-These are **dense, small, integer-keyed** containers (4-5 entries). `std::map` is a red-black tree → 3 allocations +
-pointer chasing per lookup. Replace with `std::array<X, max_zooms>` indexed by `zoom - base_zoom`. See performance
-section for the same point.
 
 ### [L] Possible `Image` leak on streamer destruction with futures in flight
 
