@@ -6,11 +6,13 @@
 #include <chrono>
 #include <format>
 #include <future>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
+#include "manager.hpp"
 #include "rlgl.h"
 #include "tilekey.hpp"
 
@@ -141,11 +143,11 @@ std::string provider::heightmap(const int zoom, const int x, const int z) {
 
 // streamer
 
-streamer::streamer(config conf, provider maps_provider)
+manager::manager(config conf, provider maps_provider)
     : conf(std::move(conf)),
       maps_provider(std::move(maps_provider)),
       displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
-      tile_downloader(4) {
+      tile_downloader(conf.allow_insecure_tls, 4) {
   // set the rendering distance
   rlSetClipPlanes(conf.near_plane, conf.far_plane);
   desired_keys.reserve(512);
@@ -192,7 +194,7 @@ streamer::streamer(config conf, provider maps_provider)
   TraceLog(LOG_INFO, "raytiles streamer initialized");
 }
 
-void streamer::update(const Camera3D &camera) {
+void manager::update(const Camera3D &camera) {
   // start with clearing items we've done with
   remove_unused_tiles();
 
@@ -209,7 +211,7 @@ void streamer::update(const Camera3D &camera) {
   process_current_location();
 }
 
-void streamer::draw(const Camera3D &camera) {
+void manager::draw(const Camera3D &camera) {
   // set the camera location (for distance -> fog)
   SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
 
@@ -248,19 +250,19 @@ void streamer::draw(const Camera3D &camera) {
   }
 }
 
-void streamer::debug(const Camera3D &camera) {
+void manager::debug(const Camera3D &camera) {
   const auto width = GetScreenWidth();
   const auto height = GetScreenHeight();
   for (const auto &[key, tile] : rendering_tiles) {
     const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
     if (x < 0 || x > width || y < 0 || y > height) continue;
 
-    Color c = key.zoom == 14 ? RED : GREEN;
+    const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
     DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, c);
   }
 }
 
-void streamer::remove_unused_tiles() {
+void manager::remove_unused_tiles() {
   std::erase_if(rendering_tiles, [&](const auto &item) {
     if (desired_keys.contains(item.first)) return false;
     if (!is_tile_covered(item.first)) return false;
@@ -268,7 +270,7 @@ void streamer::remove_unused_tiles() {
   });
 }
 
-void streamer::set_ambient_light(const Color color) {
+void manager::set_ambient_light(const Color color) {
   ambient_light[0] = static_cast<float>(color.r) / 255.0f;
   ambient_light[1] = static_cast<float>(color.g) / 255.0f;
   ambient_light[2] = static_cast<float>(color.b) / 255.0f;
@@ -277,7 +279,7 @@ void streamer::set_ambient_light(const Color color) {
   update_shader_uniforms();
 }
 
-void streamer::set_fog_color(const Color color) {
+void manager::set_fog_color(const Color color) {
   fog_color[0] = static_cast<float>(color.r) / 255.0f;
   fog_color[1] = static_cast<float>(color.g) / 255.0f;
   fog_color[2] = static_cast<float>(color.b) / 255.0f;
@@ -286,7 +288,7 @@ void streamer::set_fog_color(const Color color) {
   update_shader_uniforms();
 }
 
-float streamer::ground_height(const Vector3 position) const {
+float manager::ground_height(const Vector3 position) const {
   // walk from the highest available zoom down to base; whichever zoom holds the
   // tile that contains (position.x, position.z) wins. higher zoom = finer
   // sample, so we prefer it if loaded.
@@ -315,7 +317,7 @@ float streamer::ground_height(const Vector3 position) const {
   return 0.0f;
 }
 
-void streamer::process_current_location() {
+void manager::process_current_location() {
   desired_keys.clear();
 
   auto subdivide = [&](auto &self, const int zoom, const int tx, const int tz) -> void {
@@ -363,7 +365,7 @@ void streamer::process_current_location() {
   }
 }
 
-void streamer::process_loaded_tiles() {
+void manager::process_loaded_tiles() {
   // walk loading tiles; for each entry that finished downloading, either promote
   // it to rendering_tiles or drop it (invalid / no longer desired). entries are
   // erased immediately on the iterator. uploads are bounded both by a wall-clock
@@ -399,7 +401,7 @@ void streamer::process_loaded_tiles() {
     }
 
     // upload to GPU and move into rendering_tiles. the heightmap CPU image is
-    // kept in the loaded_tile for ground_height() queries (raycasts, collision).
+    // kept in the loaded_tile for ground_height() queries (recast, collision).
     raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
     raii::texture height_tex = raii::load_texture_from_image(*height_img);
     SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
@@ -407,12 +409,11 @@ void streamer::process_loaded_tiles() {
 
     if (conf.use_mipmap) {
       GenTextureMipmaps(&texture_tex.get());
-      // SetTextureFilter(*texture_tex, TEXTURE_FILTER_TRILINEAR);
       SetTextureFilter(*texture_tex, TEXTURE_FILTER_ANISOTROPIC_16X);
     }
 
     rendering_tiles.insert_or_assign(
-        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img), false});
+        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img)});
 
     it = loading_tiles.erase(it);
     ++promoted;
@@ -422,7 +423,7 @@ void streamer::process_loaded_tiles() {
   }
 }
 
-void streamer::update_shader_uniforms() {
+void manager::update_shader_uniforms() {
   // set the ambient color (weather/day/night/...)
   SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
 
@@ -430,7 +431,7 @@ void streamer::update_shader_uniforms() {
   SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
 }
 
-loading_tile streamer::spawn(const TileKey &tile) {
+loading_tile manager::spawn(const TileKey &tile) {
   const auto scale = 1 << (tile.zoom - conf.base_zoom);
   const auto tx = tile.x + conf.anchor_x_tile * scale;
   const auto tz = tile.z + conf.anchor_z_tile * scale;
@@ -454,7 +455,7 @@ loading_tile streamer::spawn(const TileKey &tile) {
   return t;
 }
 
-bool streamer::is_tile_covered(const TileKey &key) const {
+bool manager::is_tile_covered(const TileKey &key) const {
   const auto contains = [&](const int zoom, const int x, const int z) { return rendering_tiles.contains(TileKey{zoom, x, z}); };
 
   // check parent
@@ -473,4 +474,21 @@ bool streamer::is_tile_covered(const TileKey &key) const {
   }
   return false;
 }
+
+// streamer (pImpl forwarding)
+
+streamer::streamer(config conf, provider maps_provider) : impl(std::make_unique<manager>(std::move(conf), std::move(maps_provider))) {}
+
+streamer::~streamer() = default;
+
+streamer::streamer(streamer &&) noexcept = default;
+streamer &streamer::operator=(streamer &&) noexcept = default;
+
+void streamer::update(const Camera3D &camera) const { impl->update(camera); }
+void streamer::draw(const Camera3D &camera) const { impl->draw(camera); }
+void streamer::debug(const Camera3D &camera) const { impl->debug(camera); }
+void streamer::set_ambient_light(const Color color) const { impl->set_ambient_light(color); }
+void streamer::set_fog_color(const Color color) const { impl->set_fog_color(color); }
+float streamer::ground_height(const Vector3 position) const { return impl->ground_height(position); }
+
 }  // namespace raytiles

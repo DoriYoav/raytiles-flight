@@ -1,3 +1,9 @@
+#include <cstdlib>
+#include <format>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+
 #include "raytiles.h"
 #include "rlgl.h"
 
