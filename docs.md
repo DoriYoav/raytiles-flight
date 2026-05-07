@@ -13,6 +13,13 @@ The upscaled heightmaps won't have the same level of detail as the original zoom
 provide a reasonable approximation for rendering purposes. The textures for zoom levels 16-22 are fetched directly from
 the Mapbox texture API, so they will have the same level of detail as the original zoom 15 textures.
 
+### Implementation plan proposal
+
+- [ ] when zoom > 15 and cache not exists, fetch the zoom 15 heightmap and upscale it to the desired zoom level using a
+  simple algorithm (e.g. bilinear interpolation).
+- [ ] cache the generated heightmaps on disk to avoid regenerating them every time.
+- [ ] the rest should be the same.
+
 ## The tiles budget
 
 We want to keep the number of loaded tiles under control to avoid running out of memory or overwhelming the GPU.
