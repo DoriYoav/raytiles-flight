@@ -1,5 +1,36 @@
 # Raytiles
 
+## The zoom 15 limit
+
+The Mapbox heightmap API only provides data up to zoom level 15, which means that the maximum LOD is 15.
+The Mapbox texture API provides data up to zoom level 22.
+
+We need to be able to render higher LODs than 15, so the heightmaps for zoom levels 16-22 are generated on the fly by
+upscaling the zoom 15 heightmap.
+
+This is a common technique called "mipmapping" or "level of detail (LOD) generation".
+The upscaled heightmaps won't have the same level of detail as the original zoom 15 heightmap, but they will still
+provide a reasonable approximation for rendering purposes. The textures for zoom levels 16-22 are fetched directly from
+the Mapbox texture API, so they will have the same level of detail as the original zoom 15 textures.
+
+## The tiles budget
+
+We want to keep the number of loaded tiles under control to avoid running out of memory or overwhelming the GPU.
+The number of tiles should be constant and the change is the LOD, not the radius. The radius should be large enough to
+cover the screen at all times, but not too large to cause excessive loading times or memory usage.
+
+All images are 256x256 pixels, so a single tile is 256x256x4 bytes (RGBA8) = 256 KB.
+
+As rule of thumb, we should have up to 512 tiles loaded into memory (all LODs combined) at any given time and about half
+is actually rendered (frustum culling).
+
+## The clip planes
+
+Should reflect the distance of sight and the LODs. Ideally, should be proportional to the camera's y position.
+
+Should allow fog to blend in smoothly and hide the pop-in of new tiles. The far clip plane should be at least as far as
+the maximum LOD radius.
+
 ## Architecture
 
 ```
