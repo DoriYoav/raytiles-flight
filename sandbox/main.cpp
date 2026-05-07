@@ -24,7 +24,7 @@ int main() {
   conf.anchor_z_tile = 797.0f;
 
   const raytiles::provider provider(required_env("MAPBOX_TOKEN", "mapbox token"));
-  raytiles::streamer streamer(conf, provider);
+  const raytiles::streamer streamer(conf, provider);
 
   Camera3D camera;
   camera.position = Vector3{5000.0f, 3000.0f, 5000.0f};
