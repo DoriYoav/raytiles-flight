@@ -1,8 +1,11 @@
 # Raytiles
 
+<img src="raytiles.png" alt="logo" width="256" style="float:right"/>
+
 3D world streaming engine for [raylib](https://www.raylib.com/). Pulls satellite imagery and heightmap tiles from a
 map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
 Built for small-scale flight simulators, mission planners, and similar geospatial visualizations.
+
 
 Example video:
 
@@ -55,6 +58,6 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 
 ## TODOs
 
-- [ ] support raylib 6.0
+- [x] support raylib 6.0
 - [ ] support web builds (emscripten)
 - [ ] support more providers (TomTom, OpenStreetMap, etc.)
