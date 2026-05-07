@@ -23,6 +23,8 @@ struct config {
   int max_uploads_per_frame = 8;
   int anchor_x_tile = 1223;
   int anchor_z_tile = 828;
+  double near_plane = 1;
+  double far_plane = 100000;
 
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
   std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
@@ -107,6 +109,8 @@ class streamer {
   void process_current_location();
 
   void remove_unused_tiles();
+
+  void update_shader_uniforms();
 
   loading_tile spawn(const TileKey &tile);
 

@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+#include "rlgl.h"
 #include "tilekey.hpp"
 
 using namespace std::chrono_literals;
@@ -127,6 +128,8 @@ void main()
 )";
 }  // namespace
 
+// provider
+
 provider::provider(std::string token) : token(std::move(token)) {}
 
 std::string provider::texture(const int zoom, const int x, const int z) {
@@ -137,11 +140,15 @@ std::string provider::heightmap(const int zoom, const int x, const int z) {
   return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
 }
 
+// streamer
+
 streamer::streamer(config conf, provider maps_provider)
     : conf(std::move(conf)),
       maps_provider(std::move(maps_provider)),
       displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
       tile_downloader(4) {
+  // set the rendering distance
+  rlSetClipPlanes(conf.near_plane, conf.far_plane);
   const auto distance = static_cast<float>(conf.rendering_radius) * conf.base_zoom_tile_size;
 
   // prepare tiles size and distance for each zoom
@@ -179,6 +186,9 @@ streamer::streamer(config conf, provider maps_provider)
   constexpr float heightScale = 1.0;
   SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightScale"), &heightScale, SHADER_UNIFORM_FLOAT);
 
+  // the reset shaders uniform (those are dynamically changed...)
+  update_shader_uniforms();
+
   TraceLog(LOG_INFO, "raytiles streamer initialized");
 }
 
@@ -202,12 +212,6 @@ void streamer::update(const Camera3D &camera) {
 void streamer::draw(const Camera3D &camera) {
   // set the camera location (for distance -> fog)
   SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
-
-  // set the ambient color (weather/day/night/...)
-  SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
-
-  // set the fog color (to match the sky)
-  SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
 
   // horizontal forward direction (xz plane). tiles are flat on y=0 so testing
   // against the horizontal projection of the camera forward is enough to decide
@@ -269,6 +273,8 @@ void streamer::set_ambient_light(const Color color) {
   ambient_light[1] = static_cast<float>(color.g) / 255.0f;
   ambient_light[2] = static_cast<float>(color.b) / 255.0f;
   ambient_light[3] = static_cast<float>(color.a) / 255.0f;
+
+  update_shader_uniforms();
 }
 
 void streamer::set_fog_color(const Color color) {
@@ -276,6 +282,8 @@ void streamer::set_fog_color(const Color color) {
   fog_color[1] = static_cast<float>(color.g) / 255.0f;
   fog_color[2] = static_cast<float>(color.b) / 255.0f;
   fog_color[3] = static_cast<float>(color.a) / 255.0f;
+
+  update_shader_uniforms();
 }
 
 float streamer::ground_height(const Vector3 position) const {
@@ -413,6 +421,14 @@ void streamer::process_loaded_tiles() {
     if (promoted >= conf.max_uploads_per_frame) break;
     if (GetTime() - frame_start >= conf.upload_budget_sec) break;
   }
+}
+
+void streamer::update_shader_uniforms() {
+  // set the ambient color (weather/day/night/...)
+  SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
+
+  // set the fog color (to match the sky)
+  SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
 }
 
 loading_tile streamer::spawn(const TileKey &tile) {
