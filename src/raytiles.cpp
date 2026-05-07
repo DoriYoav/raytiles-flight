@@ -149,6 +149,7 @@ streamer::streamer(config conf, provider maps_provider)
       tile_downloader(4) {
   // set the rendering distance
   rlSetClipPlanes(conf.near_plane, conf.far_plane);
+  desired_keys.reserve(512);
   const auto distance = static_cast<float>(conf.rendering_radius) * conf.base_zoom_tile_size;
 
   // prepare tiles size and distance for each zoom
@@ -317,7 +318,6 @@ float streamer::ground_height(const Vector3 position) const {
 
 void streamer::process_current_location() {
   desired_keys.clear();
-  desired_keys.reserve(512);
 
   auto subdivide = [&](auto &self, const int zoom, const int tx, const int tz) -> void {
     // no need for calculations, this is the last zoom
@@ -360,7 +360,7 @@ void streamer::process_current_location() {
 
   // spawn new if not in rendering list
   for (const auto &key : desired_keys) {
-    if (!rendering_tiles.contains(key) && !loading_tiles.contains(key)) loading_tiles[key] = spawn(key);
+    if (!rendering_tiles.contains(key) && !loading_tiles.contains(key)) loading_tiles.try_emplace(key, spawn(key));
   }
 }
 
