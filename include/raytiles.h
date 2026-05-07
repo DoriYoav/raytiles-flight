@@ -26,6 +26,9 @@ struct config {
   double far_plane = 100000;
   bool use_mipmap = true;
   bool allow_insecure_tls = false;
+  float skirt_drop = 1000.0f;
+  float fog_start = 40000.0f;
+  float fog_end = 70000.0f;
 
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
   std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";

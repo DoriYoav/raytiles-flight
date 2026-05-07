@@ -70,6 +70,7 @@ uniform mat4 matModel;
 uniform sampler2D heightMap;
 uniform float heightScale;
 uniform vec3 cameraPosition;
+uniform float skirtDrop;
 
 out vec2 fragTexCoord;
 out float fragCamDist;
@@ -85,18 +86,18 @@ void main()
     vec3 displacedPosition = vertexPosition;
     displacedPosition.y += heightValue * heightScale;
 
+
+    // temporary disabled
     // add skirt to the edges of the terrain to hide gaps between tiles
-    float epsilon = 0.001;
-
-    bool isEdge = (vertexTexCoord.x < epsilon) ||
-                  (vertexTexCoord.x > 1.0 - epsilon) ||
-                  (vertexTexCoord.y < epsilon) ||
-                  (vertexTexCoord.y > 1.0 - epsilon);
-
-    if (isEdge)
-    {
-        displacedPosition.y -= 1000.0 * heightScale;
-    }
+    // float epsilon = 0.001;
+    // bool isEdge = (vertexTexCoord.x < epsilon) ||
+    //               (vertexTexCoord.x > 1.0 - epsilon) ||
+    //               (vertexTexCoord.y < epsilon) ||
+    //              (vertexTexCoord.y > 1.0 - epsilon);
+    // if (isEdge)
+    // {
+    //     displacedPosition.y -= skirtDrop * heightScale;
+    // }
 
     vec3 worldPosition = vec3(matModel * vec4(displacedPosition, 1.0));
     fragCamDist = distance(worldPosition, cameraPosition);
@@ -114,11 +115,10 @@ in float fragCamDist;
 uniform sampler2D texture0;
 uniform vec4 ambientLight;
 uniform vec4 fogColor;
+uniform float fogStart;
+uniform float fogEnd;
 
 out vec4 finalColor;
-
-const float fogStart = 40000.0;
-const float fogEnd   = 70000.0;
 
 void main()
 {
@@ -142,7 +142,7 @@ std::string provider::heightmap(const int zoom, const int x, const int z) const 
   return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
 }
 
-// streamer
+// manager
 
 manager::manager(config conf, provider maps_provider)
     : conf(std::move(conf)),
@@ -171,7 +171,12 @@ manager::manager(config conf, provider maps_provider)
     const int idx = zoom - conf.base_zoom;
     const int res = 16 * (1 << idx);
     const float size = tile_sizes[idx];
-    const float skirt_size = zoom == conf.base_zoom ? size * conf.skirt_size * 3.0f : size * conf.skirt_size;
+
+    float skirt_size = 10.0f;
+    if (zoom == 13) skirt_size /= 2;
+    if (zoom == 12) skirt_size /= 4;
+    if (zoom == 11) skirt_size /= 8;
+    // const float skirt_size = zoom == conf.base_zoom ? size * conf.skirt_size * 3.0f : size * conf.skirt_size;
 
     models.emplace_back(raii::load_model_from_mesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res)));
     models[idx]->materials[0].shader = *displacement_shader;
@@ -188,6 +193,11 @@ manager::manager(config conf, provider maps_provider)
 
   constexpr float heightScale = 1.0;
   SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightScale"), &heightScale, SHADER_UNIFORM_FLOAT);
+
+  // todo cache keys and add to "update_shader_uniforms()" too allow change those values based on camera y position
+  SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "fogStart"), &conf.fog_start, SHADER_UNIFORM_FLOAT);
+  SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "fogEnd"), &conf.fog_end, SHADER_UNIFORM_FLOAT);
+  SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "skirtDrop"), &conf.skirt_drop, SHADER_UNIFORM_FLOAT);
 
   // the reset shaders uniform (those are dynamically changed...)
   update_shader_uniforms();
