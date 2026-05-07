@@ -55,6 +55,8 @@ int main() {
 
   rlSetClipPlanes(1, 100000);
 
+  streamer.set_fog_color(SKYBLUE);
+
   while (!WindowShouldClose()) {
     streamer.update(camera);
     BeginDrawing();

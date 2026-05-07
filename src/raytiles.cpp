@@ -201,7 +201,7 @@ void streamer::draw(const Camera3D &camera) {
   SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
 
   // set the fog color (to match the sky)
-  SetShaderValue(*displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
+  SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
 
   // horizontal forward direction (xz plane). tiles are flat on y=0 so testing
   // against the horizontal projection of the camera forward is enough to decide
