@@ -3,6 +3,7 @@
 
 #include <future>
 #include <optional>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -18,8 +19,8 @@ namespace raytiles {
 struct loading_tile {
   float tx;
   float tz;
-  std::shared_future<Image> tx_future;
-  std::shared_future<Image> hm_future;
+  std::shared_future<std::string> tx_future;
+  std::shared_future<std::string> hm_future;
 };
 
 struct loaded_tile {

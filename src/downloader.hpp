@@ -1,35 +1,51 @@
 #pragma once
 #include <condition_variable>
+#include <cstdio>
 #include <exception>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <future>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <optional>
 #include <queue>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 #include "httplib.h"
-#include "raii.hpp"
-#include "raylib.h"
 
 namespace raytiles {
+// pool of background workers. each job downloads a tile (or reads it from the
+// on-disk cache) and resolves a future with the raw file bytes. raylib is not
+// thread-safe (image decoders, TextFormat/TextToLower static buffers, internal
+// trace state including TraceLog itself), so workers must NEVER touch any
+// raylib API. all decoding is deferred to the main thread once the future
+// resolves.
 class pool {
+  // todo allow logging from threads using config
+  // tiny thread-safe logger: serializes writes to stderr behind a single mutex
+  // so log lines never interleave. used in workers in place of TraceLog.
+  static void log_line(const std::string_view level, const std::string_view msg) {
+    static std::mutex log_mtx;
+    std::lock_guard lock(log_mtx);
+    std::fprintf(stderr, "[%.*s] %.*s\n", static_cast<int>(level.size()), level.data(), static_cast<int>(msg.size()), msg.data());
+    std::fflush(stderr);
+  }
+
   struct ImageJob {
     std::string path;
     std::string url;
-    std::promise<Image> promise;
+    std::promise<std::string> promise;
   };
 
   std::vector<std::jthread> workers;
   std::queue<ImageJob> image_queue;
-  std::map<std::string, std::shared_future<Image> > in_flight_images;
+  std::map<std::string, std::shared_future<std::string> > in_flight_bytes;
   std::mutex mtx;
   std::condition_variable_any cv;
   bool allow_insecure_tls;
@@ -45,17 +61,14 @@ class pool {
       }
 
       try {
-        raii::image img;
+        std::string bytes;
         if (auto body = fetch(img_job.path, img_job.url, allow_insecure_tls); body) {
-          // decode the freshly downloaded bytes directly, skipping a disk round-trip.
-          img.reset(LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(body->data()), static_cast<int>(body->size())));
           write_atomic(img_job.path, *body);
+          bytes = std::move(*body);
         } else {
-          // tile already cached on disk.
-          img.reset(LoadImage(img_job.path.c_str()));
+          bytes = read_file(img_job.path);
         }
-        if (img->data == nullptr) throw std::runtime_error("image decode returned empty image: " + img_job.path);
-        img_job.promise.set_value(img.release());
+        img_job.promise.set_value(std::move(bytes));
       } catch (...) {
         try {
           img_job.promise.set_exception(std::current_exception());
@@ -65,9 +78,20 @@ class pool {
       }
       {
         std::lock_guard lock(mtx);
-        in_flight_images.erase(img_job.path);
+        in_flight_bytes.erase(img_job.path);
       }
     }
+  }
+
+  static std::string read_file(const std::string &path) {
+    std::ifstream f(path, std::ios::binary);
+    if (!f) {
+      log_line("WARN", std::format("tile cache open failed: {}", path));
+      throw std::runtime_error("failed to open cached file: " + path);
+    }
+    std::string out((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    log_line("DEBUG", std::format("tile loaded from cache: {} ({} bytes)", path, out.size()));
+    return out;
   }
 
   static std::optional<std::string> fetch(const std::string &path, const std::string &url, const bool allow_insecure) {
@@ -84,10 +108,10 @@ class pool {
     if (!res || res->status != 200) {
       const int status = res ? res->status : -1;
       const std::string err = res ? std::string{} : httplib::to_string(res.error());
-      TraceLog(LOG_WARNING, "tile download failed: %s status=%d err=%s", path.c_str(), status, err.c_str());
+      log_line("WARN", std::format("tile download failed: {} status={} err={}", path, status, err));
       throw std::runtime_error(std::format("download failed: {} status={} err={}", path, status, err));
     }
-    TraceLog(LOG_DEBUG, "tile downloaded: %s", path.c_str());
+    log_line("DEBUG", std::format("tile downloaded: {} ({} bytes)", path, res->body.size()));
     return std::move(res->body);
   }
 
@@ -96,7 +120,7 @@ class pool {
     const std::string tmp_path = path + ".tmp";
     std::FILE *f = std::fopen(tmp_path.c_str(), "wb");
     if (!f) {
-      TraceLog(LOG_WARNING, "tile fopen failed: %s", tmp_path.c_str());
+      log_line("WARN", std::format("tile fopen failed: {}", tmp_path));
       throw std::runtime_error("fopen failed: " + tmp_path);
     }
     std::fwrite(bytes.data(), 1, bytes.size(), f);
@@ -104,7 +128,7 @@ class pool {
     std::error_code ec;
     std::filesystem::rename(tmp_path, path, ec);
     if (ec) {
-      TraceLog(LOG_WARNING, "tile rename failed: %s -> %s (%s)", tmp_path.c_str(), path.c_str(), ec.message().c_str());
+      log_line("WARN", std::format("tile rename failed: {} -> {} ({})", tmp_path, path, ec.message()));
       throw std::runtime_error("rename failed: " + path);
     }
   }
@@ -120,16 +144,16 @@ class pool {
     workers.clear();
   }
 
-  // returns a shared_future that resolves with the decoded Image after download.
-  // if the same path is already in flight, returns the existing future.
-  // if the file is already cached on disk, returns a future that resolves immediately with the loaded image.
-  std::shared_future<Image> enqueue_and_load(const std::string &path, const std::string &url) {
+  // returns a shared_future that resolves with the raw file bytes after download
+  // (or after reading from cache). decoding into an Image is the caller's
+  // responsibility and must be done on the main thread.
+  std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url) {
     std::lock_guard lock(mtx);
-    if (const auto it = in_flight_images.find(path); it != in_flight_images.end()) return it->second;
+    if (const auto it = in_flight_bytes.find(path); it != in_flight_bytes.end()) return it->second;
 
-    std::promise<Image> promise;
-    std::shared_future<Image> future = promise.get_future().share();
-    in_flight_images.emplace(path, future);
+    std::promise<std::string> promise;
+    std::shared_future<std::string> future = promise.get_future().share();
+    in_flight_bytes.emplace(path, future);
     image_queue.push({path, url, std::move(promise)});
     cv.notify_one();
     return future;

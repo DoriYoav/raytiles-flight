@@ -378,16 +378,37 @@ void manager::process_loaded_tiles() {
   for (auto it = loading_tiles.begin(); it != loading_tiles.end();) {
     auto &[key, tile] = *it;
 
-    // both futures must be ready
+    // both byte futures must be ready
     if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready) {
       ++it;
       continue;
     }
 
+    // futures resolved with raw file bytes - decode here on the main thread to
+    // keep raylib calls off the worker threads. take const refs since the
+    // shared_future may be reused by multiple consumers (we don't move-out).
+    // a worker exception (network failure, fopen, etc.) propagates through
+    // .get(); drop the tile so the rest of the world keeps streaming.
+    const std::string *tx_bytes_ptr = nullptr;
+    const std::string *hm_bytes_ptr = nullptr;
+    try {
+      tx_bytes_ptr = &tile.tx_future.get();
+      hm_bytes_ptr = &tile.hm_future.get();
+      TraceLog(LOG_DEBUG, "tile %d/%d/%d loaded", key.zoom, key.x, key.z);
+    } catch (const std::exception &e) {
+      TraceLog(LOG_WARNING, "tile %d/%d/%d download failed: %s - dropping", key.zoom, key.x, key.z, e.what());
+      it = loading_tiles.erase(it);
+      continue;
+    }
+    const std::string &tx_bytes = *tx_bytes_ptr;
+    const std::string &hm_bytes = *hm_bytes_ptr;
+
     // take ownership of the decoded images via RAII; they unload automatically
     // on every exit path below.
-    raii::image tex_img{tile.tx_future.get()};
-    raii::image height_img{tile.hm_future.get()};
+    raii::image tex_img{
+        LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
+    raii::image height_img{
+        LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(hm_bytes.data()), static_cast<int>(hm_bytes.size()))};
 
     if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
       TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", key.zoom, key.x, key.z);
@@ -396,7 +417,7 @@ void manager::process_loaded_tiles() {
     }
 
     if (!desired_keys.contains(key)) {
-      TraceLog(LOG_INFO, "tile %d/%d/%d became stale before upload - dropping", key.zoom, key.x, key.z);
+      TraceLog(LOG_DEBUG, "tile %d/%d/%d became stale before upload - dropping", key.zoom, key.x, key.z);
       it = loading_tiles.erase(it);
       continue;
     }
