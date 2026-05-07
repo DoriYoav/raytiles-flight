@@ -359,7 +359,12 @@ void streamer::process_current_location() {
 void streamer::process_loaded_tiles() {
   // walk loading tiles; for each entry that finished downloading, either promote
   // it to rendering_tiles or drop it (invalid / no longer desired). entries are
-  // erased immediately on the iterator.
+  // erased immediately on the iterator. uploads are bounded both by a wall-clock
+  // budget (to keep the frame steady on slow GPUs) and a hard cap (to keep heavy
+  // single-tile uploads from running away).
+  const double frame_start = GetTime();
+  int promoted = 0;
+
   for (auto it = loading_tiles.begin(); it != loading_tiles.end();) {
     auto &[key, tile] = *it;
 
@@ -396,8 +401,11 @@ void streamer::process_loaded_tiles() {
     rendering_tiles.insert_or_assign(
         key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img), false});
 
-    loading_tiles.erase(it);
-    break;  // only one GPU upload per frame to avoid spikes
+    it = loading_tiles.erase(it);
+    ++promoted;
+
+    if (promoted >= conf.max_uploads_per_frame) break;
+    if (GetTime() - frame_start >= conf.upload_budget_sec) break;
   }
 }
 

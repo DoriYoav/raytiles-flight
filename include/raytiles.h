@@ -19,6 +19,8 @@ struct config {
   float skirt_size = 0.05f;
   float update_distance = 1000.0f * 1000.0f;
   float update_height = 500.0f;
+  double upload_budget_sec = 0.002;
+  int max_uploads_per_frame = 8;
   int anchor_x_tile = 1223;
   int anchor_z_tile = 828;
 
