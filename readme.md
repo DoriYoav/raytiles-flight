@@ -2,13 +2,13 @@
 
 <img src="raytiles.png" alt="logo" width="256" align="right"/>
 
-3D world streaming engine for [raylib](https://www.raylib.com/). Pulls satellite imagery and heightmap tiles from a
-map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
-Built for small-scale flight simulators, mission planners, and similar geospatial visualizations.
+3D world streaming engine for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you, rendered
+in real-time from satellite imagery and elevation data.
 
-Allow streaming any location on Earth up to zoom level 15.
+Built for small-scale flight simulators, mission planners, and similar geospatial visualizations. Allow streaming any
+location on Earth at zoom level up to 15.
 
-Example video with base zoom level 11 up to max zoom level 14:
+The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
