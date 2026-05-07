@@ -75,14 +75,10 @@ Tasks to complete the architecture:
   `DrawModel` for tiles clearly behind the camera. Loading remains omnidirectional.)
 - [ ] Keep the heightmap `Image` (CPU-side) for ground-height queries (raycast, camera collision, entity placement).
   Currently it is freed right after upload.
-- [ ] Cancellation of in-flight downloads when a tile becomes stale before its future resolves, so the pool does not
-  waste bandwidth / CPU on tiles we will throw away.
 - [ ] Bound the number of concurrent in-flight downloads per frame and per zoom level to smooth bursts when the camera
   teleports.
 - [ ] Eviction policy for the rendering map under memory pressure (LRU by last-frame-used) — today entries only leave
   when no longer desired.
-- [ ] Replace `LoadModelFromMesh` per zoom with a shared mesh + per-tile transform, or instanced draw, to cut VRAM and
-  draw-call overhead.
 - [ ] Asynchronous GPU upload (PBO / persistent-mapped buffers) so `LoadTextureFromImage` does not stall the render
   thread; would let us promote more than one tile per frame.
 - [ ] Unit tests for the LOD subdivision and `is_tile_covered` logic — these are the parts most likely to regress
