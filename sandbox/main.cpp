@@ -11,7 +11,8 @@ static std::string required_env(const char *name, std::string_view label) {
 inline void CustomLogCallback(const int logLevel, const char *text, const va_list args) {
   // get rid of raylib internal annoying messages
   if (logLevel == LOG_INFO) {
-    if (strstr(text, "uploaded successfully") != nullptr || strstr(text, "loaded successfully") != nullptr || strstr(text, "Unloaded") != nullptr) {
+    if (strstr(text, "generated automatically") != nullptr || strstr(text, "uploaded successfully") != nullptr ||
+        strstr(text, "loaded successfully") != nullptr || strstr(text, "Unloaded") != nullptr) {
       return;
     }
   }

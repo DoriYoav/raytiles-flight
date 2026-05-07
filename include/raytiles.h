@@ -25,6 +25,7 @@ struct config {
   int anchor_z_tile = 828;
   double near_plane = 1;
   double far_plane = 100000;
+  bool use_mipmap = true;
 
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
   std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
