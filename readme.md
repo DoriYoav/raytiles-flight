@@ -8,7 +8,7 @@ Built for small-scale flight simulators, mission planners, and similar geospatia
 
 Allow streaming any location on Earth up to zoom level 15.
 
-Example video:
+Example video with base zoom level 11 up to max zoom level 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
