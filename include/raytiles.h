@@ -28,7 +28,6 @@ struct config {
 
 class provider {
   std::string token;
-  std::string base;
 
  public:
   explicit provider(std::string token);
