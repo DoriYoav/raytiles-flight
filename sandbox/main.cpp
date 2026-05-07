@@ -49,7 +49,10 @@ int main() {
 
   InitWindow(800, 600, "raytiles");
 
-  const raytiles::config conf;
+  raytiles::config conf;
+  conf.anchor_x_tile = 1179.0f;
+  conf.anchor_z_tile = 797.0f;
+
   const raytiles::provider provider(required_env("MAPBOX_TOKEN", "mapbox token"));
   raytiles::streamer streamer(conf, provider);
 
@@ -71,7 +74,6 @@ int main() {
 
     BeginMode3D(camera);
     streamer.draw(camera);
-    DrawGrid(100, 10.0f);
     EndMode3D();
     // streamer.debug(camera);
     EndDrawing();

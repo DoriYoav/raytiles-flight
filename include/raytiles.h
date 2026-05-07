@@ -36,7 +36,7 @@ struct config {
 
   /// Skirt geometry overlap factor (per side) used to hide cracks between
   /// neighboring tiles at different LODs.
-  float skirt_size = 12.0f;
+  float skirt_size = 15.0f;
 
   /// Squared XZ distance the camera must travel before the desired-tile set
   /// is recomputed. Keep this large enough that small movements don't churn
