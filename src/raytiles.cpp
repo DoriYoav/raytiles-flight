@@ -145,20 +145,26 @@ streamer::streamer(config conf, provider maps_provider)
   const auto distance = static_cast<float>(conf.rendering_radius) * conf.base_zoom_tile_size;
 
   // prepare tiles size and distance for each zoom
+  const int zoom_count = conf.max_zoom - conf.base_zoom + 1;
+  tile_sizes.resize(zoom_count);
+  tile_distances.resize(zoom_count);
   for (int zoom = conf.base_zoom; zoom <= conf.max_zoom; ++zoom) {
     const int ratio = 1 << (zoom - conf.base_zoom);
-    tile_sizes[zoom] = conf.base_zoom_tile_size / static_cast<float>(ratio);
-    tile_distances[zoom] = distance * distance / static_cast<float>(ratio * ratio * ratio);
+    const int idx = zoom - conf.base_zoom;
+    tile_sizes[idx] = conf.base_zoom_tile_size / static_cast<float>(ratio);
+    tile_distances[idx] = distance * distance / static_cast<float>(ratio * ratio * ratio);
   }
 
   // creating model for each zoom level, avoiding the need to stretch the model
+  models.reserve(zoom_count);
   for (int zoom = conf.base_zoom; zoom <= conf.max_zoom; ++zoom) {
-    const int res = 16 * (1 << (zoom - conf.base_zoom));
-    const float size = tile_sizes.at(zoom);
+    const int idx = zoom - conf.base_zoom;
+    const int res = 16 * (1 << idx);
+    const float size = tile_sizes[idx];
     const float skirt_size = zoom == conf.base_zoom ? size * conf.skirt_size * 3.0f : size * conf.skirt_size;
 
-    models[zoom] = raii::load_model_from_mesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res));
-    models[zoom]->materials[0].shader = *displacement_shader;
+    models.emplace_back(raii::load_model_from_mesh(GenMeshPlane(size + skirt_size, size + skirt_size, res, res)));
+    models[idx]->materials[0].shader = *displacement_shader;
   }
 
   // cache shader locations
@@ -215,7 +221,7 @@ void streamer::draw(const Camera3D &camera) {
   const float fwd_nz = cull_enabled ? fwd_z / fwd_len : 0.0f;
 
   for (const auto &[key, tile] : rendering_tiles) {
-    const auto size = tile_sizes.at(key.zoom);
+    const auto size = tile_sizes[key.zoom - conf.base_zoom];
 
     // skip tiles that lie behind the camera by more than one tile-size buffer.
     // tiles to the side (perpendicular to forward) and anything in front pass.
@@ -228,7 +234,7 @@ void streamer::draw(const Camera3D &camera) {
       if (along_forward < -size) continue;
     }
 
-    const auto &model = models.at(key.zoom);
+    const auto &model = models[key.zoom - conf.base_zoom];
     model->materials[0].maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
     model->materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
 
@@ -277,9 +283,7 @@ float streamer::ground_height(const Vector3 position) const {
   // tile that contains (position.x, position.z) wins. higher zoom = finer
   // sample, so we prefer it if loaded.
   for (int zoom = conf.max_zoom; zoom >= conf.base_zoom; --zoom) {
-    const auto size_it = tile_sizes.find(zoom);
-    if (size_it == tile_sizes.end()) continue;
-    const float size = size_it->second;
+    const float size = tile_sizes[zoom - conf.base_zoom];
 
     const int tile_x = static_cast<int>(std::floorf(position.x / size));
     const int tile_z = static_cast<int>(std::floorf(position.z / size));
@@ -315,7 +319,7 @@ void streamer::process_current_location() {
     }
 
     // calculate distance of the tile from the camera
-    const float tile_size = tile_sizes.at(zoom);
+    const float tile_size = tile_sizes[zoom - conf.base_zoom];
     const float world_x = (static_cast<float>(tx) + 0.5f) * tile_size;
     const float world_z = (static_cast<float>(tz) + 0.5f) * tile_size;
     const float ddx = last_position.x - world_x;
@@ -323,7 +327,7 @@ void streamer::process_current_location() {
 
     // check against the next zoom distance threshold, if it's far enough,
     // add to the list, otherwise subdivide into 4 children
-    if (ddx * ddx + ddz * ddz >= tile_distances.at(zoom + 1)) {
+    if (ddx * ddx + ddz * ddz >= tile_distances[zoom + 1 - conf.base_zoom]) {
       desired_keys.insert({zoom, tx, tz});
       return;
     }
@@ -405,7 +409,7 @@ loading_tile streamer::spawn(const TileKey &tile) {
   const auto tx_path = std::vformat(conf.texture_cache_path, std::make_format_args(tile.zoom, tx, tz));
   const auto hm_path = std::vformat(conf.heightmap_cache_path, std::make_format_args(tile.zoom, tx, tz));
 
-  const auto tile_size = tile_sizes.at(tile.zoom);
+  const auto tile_size = tile_sizes[tile.zoom - conf.base_zoom];
   const auto tx_url = maps_provider.texture(tile.zoom, tx, tz);
   const auto hm_url = maps_provider.heightmap(tile.zoom, tx, tz);
 

@@ -1,8 +1,8 @@
 #ifndef RAYTILES_LIBRARY_H
 #define RAYTILES_LIBRARY_H
-#include <map>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "../src/downloader.hpp"
 #include "../src/raii.hpp"
@@ -72,9 +72,9 @@ class streamer {
   float ambient_light[4] = {1.0f, 1.0f, 1.0f, 1.0f};
   float fog_color[4] = {0.0f, 0.0f, 1.0f, 1.0f};
 
-  std::map<int, raii::model> models = {};
-  std::map<int, float> tile_sizes = {};
-  std::map<int, float> tile_distances = {};
+  std::vector<raii::model> models = {};
+  std::vector<float> tile_sizes = {};
+  std::vector<float> tile_distances = {};
 
   Vector3 last_position = {-9999.9f, -9999.9f, -9999.9f};
 
