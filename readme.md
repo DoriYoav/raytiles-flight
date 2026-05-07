@@ -61,6 +61,8 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 ## TODOs
 
 - [x] support raylib 6.0
+- [ ] support windows builds (MSVC + MinGW)
+- [ ] support Linux builds (GCC + Clang)
 - [ ] support web builds (emscripten)
 - [ ] support more providers (TomTom, OpenStreetMap, etc.)
 - [ ] support more than level 15 zoom
