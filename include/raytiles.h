@@ -91,6 +91,11 @@ struct config {
   /// Distance (in meters) at which fog reaches full opacity.
   float fog_end = 70000.0f;
 
+  /// Weather to log from the threads or from the main process
+  /// Logging from main thread/process is done via raylib's TraceLog function
+  bool use_logger = false;
+  bool use_threads_logger = false;
+
   /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
   /// `std::vformat`. Parent directories are created on demand.
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";

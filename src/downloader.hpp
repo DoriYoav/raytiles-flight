@@ -52,9 +52,13 @@ class pool {
   // with std::jthread::request_stop(). do not "simplify" to condition_variable
   // - workers would never wake up on shutdown and ~pool would hang forever.
   std::condition_variable_any cv;
+
+  // flags for development
   bool allow_insecure_tls;
+  bool allow_logger;
 
   void worker_loop(const std::stop_token &st) {
+    bool use_logger = allow_logger;
     // one persistent http client per worker. mapbox endpoints all live under a
     // single host, so we can keep the TLS connection alive across many tiles
     // instead of paying handshake cost per fetch. the client is owned by the
@@ -78,10 +82,12 @@ class pool {
       try {
         std::string bytes;
         if (auto body = fetch(cli, img_job.path, img_job.url); body) {
+          if (use_logger) log_line("DEBUG", std::format("tile downloaded: {} ", img_job.path));
           write_atomic(img_job.path, *body);
           bytes = std::move(*body);
         } else {
           bytes = read_file(img_job.path);
+          if (use_logger) log_line("DEBUG", std::format("tile loaded from cache: {}", img_job.path));
         }
         img_job.promise.set_value(std::move(bytes));
       } catch (...) {
@@ -101,11 +107,9 @@ class pool {
   static std::string read_file(const std::string &path) {
     std::ifstream f(path, std::ios::binary);
     if (!f) {
-      log_line("WARN", std::format("tile cache open failed: {}", path));
       throw std::runtime_error("failed to open cached file: " + path);
     }
     std::string out((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    log_line("DEBUG", std::format("tile loaded from cache: {} ({} bytes)", path, out.size()));
     return out;
   }
 
@@ -116,10 +120,8 @@ class pool {
     if (!res || res->status != 200) {
       const int status = res ? res->status : -1;
       const std::string err = res ? std::string{} : httplib::to_string(res.error());
-      log_line("WARN", std::format("tile download failed: {} status={} err={}", path, status, err));
       throw std::runtime_error(std::format("download failed: {} status={} err={}", path, status, err));
     }
-    log_line("DEBUG", std::format("tile downloaded: {} ({} bytes)", path, res->body.size()));
     return std::move(res->body);
   }
 
@@ -128,7 +130,6 @@ class pool {
     const std::string tmp_path = path + ".tmp";
     std::FILE *f = std::fopen(tmp_path.c_str(), "wb");
     if (!f) {
-      log_line("WARN", std::format("tile fopen failed: {}", tmp_path));
       throw std::runtime_error("fopen failed: " + tmp_path);
     }
     std::fwrite(bytes.data(), 1, bytes.size(), f);
@@ -136,13 +137,13 @@ class pool {
     std::error_code ec;
     std::filesystem::rename(tmp_path, path, ec);
     if (ec) {
-      log_line("WARN", std::format("tile rename failed: {} -> {} ({})", tmp_path, path, ec.message()));
       throw std::runtime_error("rename failed: " + path);
     }
   }
 
  public:
-  explicit pool(const bool allow_insecure_tls, const int thread_count = 4) : allow_insecure_tls(allow_insecure_tls) {
+  explicit pool(const bool allow_insecure_tls, const bool allow_logger, const int thread_count = 4)
+      : allow_insecure_tls(allow_insecure_tls), allow_logger(allow_logger) {
     workers.reserve(thread_count);
     for (int i = 0; i < thread_count; ++i) workers.emplace_back([this](const std::stop_token &st) { worker_loop(st); });
   }

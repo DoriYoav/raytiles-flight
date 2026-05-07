@@ -148,7 +148,7 @@ manager::manager(config conf, provider maps_provider)
     : conf(std::move(conf)),
       maps_provider(std::move(maps_provider)),
       displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
-      tile_downloader(conf.allow_insecure_tls, conf.download_threads) {
+      tile_downloader(conf.allow_insecure_tls, conf.use_threads_logger, conf.download_threads) {
   // set the rendering distance
   rlSetClipPlanes(conf.near_plane, conf.far_plane);
   desired_keys.reserve(512);
@@ -201,7 +201,7 @@ manager::manager(config conf, provider maps_provider)
   // the reset shaders uniform (those are dynamically changed...)
   update_shader_uniforms();
 
-  TraceLog(LOG_INFO, "raytiles streamer initialized");
+  if (conf.use_logger) TraceLog(LOG_INFO, "raytiles streamer initialized");
 }
 
 void manager::update(const Camera3D &camera) {
@@ -427,7 +427,7 @@ void manager::process_loaded_tiles() {
     try {
       tx_bytes_ptr = &tile.tx_future.get();
       hm_bytes_ptr = &tile.hm_future.get();
-      TraceLog(LOG_DEBUG, "tile %d/%d/%d loaded", key.zoom, key.x, key.z);
+      if (conf.use_logger) TraceLog(LOG_DEBUG, "tile %d/%d/%d loaded", key.zoom, key.x, key.z);
     } catch (const std::exception &e) {
       TraceLog(LOG_WARNING, "tile %d/%d/%d download failed: %s - dropping", key.zoom, key.x, key.z, e.what());
       it = loading_tiles.erase(it);
@@ -448,7 +448,7 @@ void manager::process_loaded_tiles() {
     }
 
     if (!desired_keys.contains(key)) {
-      TraceLog(LOG_DEBUG, "tile %d/%d/%d became stale before upload - dropping", key.zoom, key.x, key.z);
+      if (conf.use_logger) TraceLog(LOG_DEBUG, "tile %d/%d/%d became stale before upload - dropping", key.zoom, key.x, key.z);
       it = loading_tiles.erase(it);
       continue;
     }
@@ -507,7 +507,7 @@ loading_tile manager::spawn(const TileKey &tile) {
   auto t = loading_tile{(static_cast<float>(tile.x) + 0.5f) * tile_size, (static_cast<float>(tile.z) + 0.5f) * tile_size,
                         tile_downloader.enqueue_and_load(tx_path, tx_url), tile_downloader.enqueue_and_load(hm_path, hm_url)};
 
-  TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", tile.zoom, tile.x, tile.z, t.tx, t.tz);
+  if (conf.use_logger) TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", tile.zoom, tile.x, tile.z, t.tx, t.tz);
   return t;
 }
 
