@@ -73,8 +73,9 @@ Tasks to complete the architecture:
   flight simulators can roll/pitch instantly and need tiles behind/around the camera already resident on the GPU to
   avoid pop-in.~~ (implemented as a cheap horizontal "behind-camera" half-space test with a one-tile buffer; skips
   `DrawModel` for tiles clearly behind the camera. Loading remains omnidirectional.)
-- [ ] Keep the heightmap `Image` (CPU-side) for ground-height queries (raycast, camera collision, entity placement).
-  Currently it is freed right after upload.
+- [x] ~~Keep the heightmap `Image` (CPU-side) for ground-height queries (raycast, camera collision, entity placement).
+  Currently it is freed right after upload.~~ (CPU-side `raii::image` retained on each `loaded_tile`; exposed via
+  `streamer::ground_height(Vector3)`.)
 - [ ] Bound the number of concurrent in-flight downloads per frame and per zoom level to smooth bursts when the camera
   teleports.
 - [ ] Eviction policy for the rendering map under memory pressure (LRU by last-frame-used) — today entries only leave

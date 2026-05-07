@@ -56,6 +56,7 @@ struct loaded_tile {
   float tz;
   raii::texture tx_texture;
   raii::texture hm_texture;
+  raii::image hm_image;
   bool done;
 };
 
@@ -96,6 +97,8 @@ class streamer {
   void set_ambient_light(Color color);
 
   void set_fog_color(Color color);
+
+  [[nodiscard]] float ground_height(Vector3 position) const;
 
  private:
   void process_loaded_tiles();

@@ -19,6 +19,34 @@ using namespace std::chrono_literals;
 namespace raytiles {
 
 namespace {
+/// a better performance function instead of using
+/// const auto c = GetImageColor(img, px, pz);
+float get_height_from_image(const Image &img, int x, int y) {
+  if (x < 0) x = 0;
+  if (y < 0) y = 0;
+  if (x >= img.width) x = img.width - 1;
+  if (y >= img.height) y = img.height - 1;
+
+  const auto pixels = static_cast<const unsigned char *>(img.data);
+  unsigned char r, g, b;
+
+  if (img.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8) {
+    const int index = (y * img.width + x) * 3;
+    r = pixels[index];
+    g = pixels[index + 1];
+    b = pixels[index + 2];
+  } else if (img.format == PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
+    const int index = (y * img.width + x) * 4;
+    r = pixels[index];
+    g = pixels[index + 1];
+    b = pixels[index + 2];
+  } else {
+    return 0.0f;
+  }
+
+  return -10000.0f + (static_cast<float>(r) * 65536.0f + static_cast<float>(g) * 256.0f + static_cast<float>(b)) * 0.1f;
+}
+
 int radius(const float height) {
   if (height < 500) return 2;
   if (height < 1000) return 3;
@@ -247,6 +275,37 @@ void streamer::set_fog_color(const Color color) {
   fog_color[3] = static_cast<float>(color.a) / 255.0f;
 }
 
+float streamer::ground_height(const Vector3 position) const {
+  // walk from the highest available zoom down to base; whichever zoom holds the
+  // tile that contains (position.x, position.z) wins. higher zoom = finer
+  // sample, so we prefer it if loaded.
+  for (int zoom = conf.max_zoom; zoom >= conf.base_zoom; --zoom) {
+    const auto size_it = tile_sizes.find(zoom);
+    if (size_it == tile_sizes.end()) continue;
+    const float size = size_it->second;
+
+    const int tile_x = static_cast<int>(std::floorf(position.x / size));
+    const int tile_z = static_cast<int>(std::floorf(position.z / size));
+
+    const auto it = rendering_tiles.find(TileKey{zoom, tile_x, tile_z});
+    if (it == rendering_tiles.end()) continue;
+
+    const auto &tile = it->second;
+    const Image &img = *tile.hm_image;
+    if (!IsImageValid(img)) continue;
+
+    // local uv inside the tile, [0, 1)
+    const float u = (position.x - static_cast<float>(tile_x) * size) / size;
+    const float v = (position.z - static_cast<float>(tile_z) * size) / size;
+
+    const int px = static_cast<int>(u * static_cast<float>(img.width));
+    const int py = static_cast<int>(v * static_cast<float>(img.height));
+
+    return get_height_from_image(img, px, py);
+  }
+  return 0.0f;
+}
+
 void streamer::process_current_location() {
   desired_keys.clear();
   desired_keys.reserve(512);
@@ -326,14 +385,15 @@ void streamer::process_loaded_tiles() {
       continue;
     }
 
-    // upload to GPU and move into rendering_tiles
+    // upload to GPU and move into rendering_tiles. the heightmap CPU image is
+    // kept in the loaded_tile for ground_height() queries (raycasts, collision).
     raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
     raii::texture height_tex = raii::load_texture_from_image(*height_img);
     SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
     SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
 
-    // todo keeping the heightmap for querying the ground height
-    rendering_tiles.insert_or_assign(key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), false});
+    rendering_tiles.insert_or_assign(
+        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img), false});
 
     loading_tiles.erase(it);
     break;  // only one GPU upload per frame to avoid spikes
