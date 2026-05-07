@@ -1,6 +1,6 @@
 # Raytiles
 
-<img src="raytiles.png" alt="logo" width="256" style="float:right"/>
+<img src="raytiles.png" alt="logo" width="256" align="right"/>
 
 3D world streaming engine for [raylib](https://www.raylib.com/). Pulls satellite imagery and heightmap tiles from a
 map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
