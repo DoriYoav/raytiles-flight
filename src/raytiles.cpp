@@ -134,11 +134,11 @@ void main()
 
 provider::provider(std::string token) : token(std::move(token)) {}
 
-std::string provider::texture(const int zoom, const int x, const int z) {
+std::string provider::texture(const int zoom, const int x, const int z) const {
   return std::format("/v4/mapbox.satellite/{}/{}/{}.png?access_token={}", zoom, x, z, token);
 }
 
-std::string provider::heightmap(const int zoom, const int x, const int z) {
+std::string provider::heightmap(const int zoom, const int x, const int z) const {
   return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
 }
 
@@ -148,7 +148,7 @@ manager::manager(config conf, provider maps_provider)
     : conf(std::move(conf)),
       maps_provider(std::move(maps_provider)),
       displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
-      tile_downloader(conf.allow_insecure_tls, 4) {
+      tile_downloader(conf.allow_insecure_tls, conf.download_threads) {
   // set the rendering distance
   rlSetClipPlanes(conf.near_plane, conf.far_plane);
   desired_keys.reserve(512);
@@ -246,7 +246,26 @@ void manager::draw(const Camera3D &camera) {
     model->materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
 
     DrawModel(*model, {tile.tx, 0.0f, tile.tz}, 1.0f, WHITE);
+  }
+}
 
+void manager::debug_3d(const Camera3D &camera) {
+  // see manager::draw
+  const float fwd_x = camera.target.x - camera.position.x;
+  const float fwd_z = camera.target.z - camera.position.z;
+  const float fwd_len = std::sqrt(fwd_x * fwd_x + fwd_z * fwd_z);
+  const bool cull_enabled = fwd_len > 0.0001f;
+  const float fwd_nx = cull_enabled ? fwd_x / fwd_len : 0.0f;
+  const float fwd_nz = cull_enabled ? fwd_z / fwd_len : 0.0f;
+
+  for (const auto &[key, tile] : rendering_tiles) {
+    const auto size = tile_sizes[key.zoom - conf.base_zoom];
+    if (cull_enabled) {
+      const float dx = tile.tx - camera.position.x;
+      const float dz = tile.tz - camera.position.z;
+      const float along_forward = dx * fwd_nx + dz * fwd_nz;
+      if (along_forward < -size) continue;
+    }
     DrawCubeWires({tile.tx, 0.0f, tile.tz}, size, 200.0f, size, RED);
   }
 }
@@ -269,6 +288,11 @@ void manager::remove_unused_tiles() {
     if (!is_tile_covered(item.first)) return false;
     return true;
   });
+  // also drop loading-tile bookkeeping for tiles we no longer want. the
+  // background workers still finish their downloads and write to disk (the
+  // file cache is the whole point of background streaming), but we stop
+  // holding the resolved bytes in memory once they arrive.
+  std::erase_if(loading_tiles, [&](const auto &item) { return !desired_keys.contains(item.first); });
 }
 
 void manager::set_ambient_light(const Color color) {
@@ -405,10 +429,8 @@ void manager::process_loaded_tiles() {
 
     // take ownership of the decoded images via RAII; they unload automatically
     // on every exit path below.
-    raii::image tex_img{
-        LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
-    raii::image height_img{
-        LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(hm_bytes.data()), static_cast<int>(hm_bytes.size()))};
+    raii::image tex_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
+    raii::image height_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(hm_bytes.data()), static_cast<int>(hm_bytes.size()))};
 
     if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
       TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", key.zoom, key.x, key.z);
@@ -514,6 +536,7 @@ streamer &streamer::operator=(streamer &&) noexcept = default;
 void streamer::update(const Camera3D &camera) const { impl->update(camera); }
 void streamer::draw(const Camera3D &camera) const { impl->draw(camera); }
 void streamer::debug(const Camera3D &camera) const { impl->debug(camera); }
+void streamer::debug_3d(const Camera3D &camera) const { impl->debug_3d(camera); }
 void streamer::set_ambient_light(const Color color) const { impl->set_ambient_light(color); }
 void streamer::set_fog_color(const Color color) const { impl->set_fog_color(color); }
 std::optional<float> streamer::ground_height(const Vector3 position) const { return impl->ground_height(position); }

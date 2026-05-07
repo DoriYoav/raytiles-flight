@@ -38,6 +38,7 @@ class manager {
   void update(const Camera3D &camera);
   void draw(const Camera3D &camera);
   void debug(const Camera3D &camera);
+  void debug_3d(const Camera3D &camera);
   void set_ambient_light(Color color);
   void set_fog_color(Color color);
   [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;

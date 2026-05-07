@@ -47,10 +47,25 @@ class pool {
   std::queue<ImageJob> image_queue;
   std::map<std::string, std::shared_future<std::string> > in_flight_bytes;
   std::mutex mtx;
+  // condition_variable_any (not std::condition_variable!) is required so we can
+  // use the 3-arg wait(lock, stop_token, predicate) overload that cooperates
+  // with std::jthread::request_stop(). do not "simplify" to condition_variable
+  // - workers would never wake up on shutdown and ~pool would hang forever.
   std::condition_variable_any cv;
   bool allow_insecure_tls;
 
   void worker_loop(const std::stop_token &st) {
+    // one persistent http client per worker. mapbox endpoints all live under a
+    // single host, so we can keep the TLS connection alive across many tiles
+    // instead of paying handshake cost per fetch. the client is owned by the
+    // worker thread so no synchronization is needed.
+    httplib::Client cli("https://api.mapbox.com");
+    cli.set_follow_location(true);
+    cli.set_connection_timeout(10);
+    cli.set_read_timeout(5);
+    cli.set_keep_alive(true);
+    cli.enable_server_certificate_verification(!allow_insecure_tls);
+
     while (true) {
       ImageJob img_job;
       {
@@ -62,7 +77,7 @@ class pool {
 
       try {
         std::string bytes;
-        if (auto body = fetch(img_job.path, img_job.url, allow_insecure_tls); body) {
+        if (auto body = fetch(cli, img_job.path, img_job.url); body) {
           write_atomic(img_job.path, *body);
           bytes = std::move(*body);
         } else {
@@ -94,15 +109,8 @@ class pool {
     return out;
   }
 
-  static std::optional<std::string> fetch(const std::string &path, const std::string &url, const bool allow_insecure) {
+  static std::optional<std::string> fetch(httplib::Client &cli, const std::string &path, const std::string &url) {
     if (std::filesystem::exists(path)) return std::nullopt;
-
-    httplib::Client cli("https://api.mapbox.com");
-    cli.set_follow_location(true);
-    cli.set_connection_timeout(10);
-    cli.set_read_timeout(5);
-    cli.set_keep_alive(true);
-    cli.enable_server_certificate_verification(!allow_insecure);
 
     auto res = cli.Get(url);
     if (!res || res->status != 200) {
@@ -147,6 +155,12 @@ class pool {
   // returns a shared_future that resolves with the raw file bytes after download
   // (or after reading from cache). decoding into an Image is the caller's
   // responsibility and must be done on the main thread.
+  //
+  // race note: the worker calls promise.set_value() before erasing the entry
+  // from in_flight_bytes. if a second caller requests the same path during
+  // that window, it receives a future that is already satisfied - which is
+  // exactly the desired behavior (the bytes are immediately available, no
+  // duplicate download is queued).
   std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url) {
     std::lock_guard lock(mtx);
     if (const auto it = in_flight_bytes.find(path); it != in_flight_bytes.end()) return it->second;

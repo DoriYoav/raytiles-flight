@@ -19,6 +19,7 @@ struct config {
   float update_height = 500.0f;
   double upload_budget_sec = 0.002;
   int max_uploads_per_frame = 8;
+  int download_threads = 4;
   int anchor_x_tile = 1223;
   int anchor_z_tile = 828;
   double near_plane = 1;
@@ -36,9 +37,9 @@ class provider {
  public:
   explicit provider(std::string token);
 
-  std::string texture(int zoom, int x, int z);
+  std::string texture(int zoom, int x, int z) const;
 
-  std::string heightmap(int zoom, int x, int z);
+  std::string heightmap(int zoom, int x, int z) const;
 };
 
 class manager;
@@ -56,8 +57,14 @@ class streamer {
   void update(const Camera3D &camera) const;
   void draw(const Camera3D &camera) const;
   void debug(const Camera3D &camera) const;
+  void debug_3d(const Camera3D &camera) const;
   void set_ambient_light(Color color) const;
   void set_fog_color(Color color) const;
+  // returns the terrain altitude under `position`, sampled from the loaded
+  // heightmap. nullopt when no tile covers the queried point. note: each
+  // loaded tile keeps its decoded heightmap image in CPU memory (~192KB) so
+  // this query is a direct pixel read - the trade-off is ~40MB RAM in the
+  // steady state, which is negligible for a desktop flight-sim client.
   [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
  private:
