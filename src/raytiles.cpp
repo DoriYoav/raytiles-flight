@@ -222,6 +222,20 @@ void streamer::remove_unused_tiles() {
   });
 }
 
+void streamer::set_ambient_light(const Color color) {
+  ambient_light[0] = static_cast<float>(color.r) / 255.0f;
+  ambient_light[1] = static_cast<float>(color.g) / 255.0f;
+  ambient_light[2] = static_cast<float>(color.b) / 255.0f;
+  ambient_light[3] = static_cast<float>(color.a) / 255.0f;
+}
+
+void streamer::set_fog_color(const Color color) {
+  fog_color[0] = static_cast<float>(color.r) / 255.0f;
+  fog_color[1] = static_cast<float>(color.g) / 255.0f;
+  fog_color[2] = static_cast<float>(color.b) / 255.0f;
+  fog_color[3] = static_cast<float>(color.a) / 255.0f;
+}
+
 void streamer::process_current_location() {
   desired_keys.clear();
   desired_keys.reserve(512);
@@ -308,8 +322,7 @@ void streamer::process_loaded_tiles() {
     SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
 
     // todo keeping the heightmap for querying the ground height
-    rendering_tiles.insert_or_assign(
-        key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), false});
+    rendering_tiles.insert_or_assign(key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), false});
 
     loading_tiles.erase(it);
     break;  // only one GPU upload per frame to avoid spikes
