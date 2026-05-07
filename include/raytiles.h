@@ -26,6 +26,7 @@ struct config {
   double near_plane = 1;
   double far_plane = 100000;
   bool use_mipmap = true;
+  bool allow_insecure_tls = false;
 
   std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
   std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
