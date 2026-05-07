@@ -398,6 +398,12 @@ void streamer::process_loaded_tiles() {
     SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
     SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
 
+    // mipmaps + trilinear on the albedo only — far tiles need filtering to avoid
+    // moiré shimmer in flight. heightmap is sampled 1:1 in the vertex shader so
+    // mipmaps would only blur the displacement.
+    GenTextureMipmaps(&texture_tex.get());
+    SetTextureFilter(*texture_tex, TEXTURE_FILTER_TRILINEAR);
+
     rendering_tiles.insert_or_assign(
         key, loaded_tile{tile.x, tile.z, tile.zoom, tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img), false});
 
