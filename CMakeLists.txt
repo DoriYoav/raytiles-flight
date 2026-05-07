@@ -9,11 +9,12 @@ list(APPEND CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "/Library/Developer/CommandLi
 
 include(FetchContent)
 
+add_compile_definitions(SUPPORT_FILEFORMAT_JPG)
 if (NOT TARGET raylib)
     FetchContent_Declare(
             raylib
             GIT_REPOSITORY https://github.com/raysan5/raylib.git
-            GIT_TAG 5.5
+            GIT_TAG 6.0
             GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(raylib)
@@ -40,10 +41,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC include)
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib)
 target_link_libraries(${PROJECT_NAME} PUBLIC httplib) # make private
 
-if(APPLE)
+if (APPLE)
     find_library(SECURITY_FRAMEWORK Security)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${SECURITY_FRAMEWORK})
-endif()
+endif ()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
 
