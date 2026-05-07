@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <format>
 #include <future>
 #include <string>
@@ -155,19 +156,41 @@ void streamer::update(const Camera3D &camera) {
 }
 
 void streamer::draw(const Camera3D &camera) {
+  // set the camera location (for distance -> fog)
+  SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
+
+  // set the ambient color (weather/day/night/...)
+  SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
+
+  // set the fog color (to match the sky)
+  SetShaderValue(*displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
+
+  // horizontal forward direction (xz plane). tiles are flat on y=0 so testing
+  // against the horizontal projection of the camera forward is enough to decide
+  // "is the tile in front of (or beside) the camera?". if the camera is looking
+  // straight up/down, fwd_len ~ 0 and we disable culling for this frame.
+  const float fwd_x = camera.target.x - camera.position.x;
+  const float fwd_z = camera.target.z - camera.position.z;
+  const float fwd_len = std::sqrt(fwd_x * fwd_x + fwd_z * fwd_z);
+  const bool cull_enabled = fwd_len > 0.0001f;
+  const float fwd_nx = cull_enabled ? fwd_x / fwd_len : 0.0f;
+  const float fwd_nz = cull_enabled ? fwd_z / fwd_len : 0.0f;
+
   for (const auto &[key, tile] : rendering_tiles) {
     if (tile.done) continue;
 
-    SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
+    const auto size = tile_sizes.at(key.zoom);
 
-    // set the camera location (for distance -> fog)
-    SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
-
-    // set the ambient color (weather/day/night/...)
-    SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
-
-    // set the fog color (to match the sky)
-    SetShaderValue(*displacement_shader, fog_color_log, &fog_color, SHADER_UNIFORM_VEC4);
+    // skip tiles that lie behind the camera by more than one tile-size buffer.
+    // tiles to the side (perpendicular to forward) and anything in front pass.
+    // the buffer is the tile size at this zoom so a tile straddling the camera
+    // plane is still drawn.
+    if (cull_enabled) {
+      const float dx = tile.tx - camera.position.x;
+      const float dz = tile.tz - camera.position.z;
+      const float along_forward = dx * fwd_nx + dz * fwd_nz;
+      if (along_forward < -size) continue;
+    }
 
     const auto &model = models.at(key.zoom);
     model->materials[0].maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
@@ -175,7 +198,6 @@ void streamer::draw(const Camera3D &camera) {
 
     DrawModel(*model, {tile.tx, 0.0f, tile.tz}, 1.0f, WHITE);
 
-    const auto size = tile_sizes.at(key.zoom);
     DrawCubeWires({tile.tx, 0.0f, tile.tz}, size, 200.0f, size, RED);
   }
 }

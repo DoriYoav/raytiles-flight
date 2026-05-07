@@ -68,10 +68,11 @@ Tasks to complete the architecture:
 
 - [x] ~~Replace the per-entry `done` flag in `loading_tile` with immediate erase from the loading map after promotion (use
   iterator-safe erase or collect keys to erase after the loop).~~
-- [ ] View-frustum culling **at render time only**: skip `DrawModel` for loaded tiles outside the camera frustum to cut
+- [x] ~~View-frustum culling **at render time only**: skip `DrawModel` for loaded tiles outside the camera frustum to cut
   draw calls / GPU work. The desired set and the download/upload pipeline must stay omnidirectional — clients like
   flight simulators can roll/pitch instantly and need tiles behind/around the camera already resident on the GPU to
-  avoid pop-in.
+  avoid pop-in.~~ (implemented as a cheap horizontal "behind-camera" half-space test with a one-tile buffer; skips
+  `DrawModel` for tiles clearly behind the camera. Loading remains omnidirectional.)
 - [ ] Keep the heightmap `Image` (CPU-side) for ground-height queries (raycast, camera collision, entity placement).
   Currently it is freed right after upload.
 - [ ] Cancellation of in-flight downloads when a tile becomes stale before its future resolves, so the pool does not
