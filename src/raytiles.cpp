@@ -17,6 +17,7 @@
 using namespace std::chrono_literals;
 
 namespace raytiles {
+
 namespace {
 int radius(const float height) {
   if (height < 500) return 2;
@@ -97,6 +98,16 @@ void main()
 }
 )";
 }  // namespace
+
+provider::provider(std::string token) : token(std::move(token)) {}
+
+std::string provider::texture(const int zoom, const int x, const int z) {
+  return std::format("/v4/mapbox.satellite/{}/{}/{}.png?access_token={}", zoom, x, z, token);
+}
+
+std::string provider::heightmap(const int zoom, const int x, const int z) {
+  return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
+}
 
 streamer::streamer(config conf, provider maps_provider)
     : conf(std::move(conf)),

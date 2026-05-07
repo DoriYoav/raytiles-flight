@@ -1,6 +1,5 @@
 #ifndef RAYTILES_LIBRARY_H
 #define RAYTILES_LIBRARY_H
-#include <format>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -32,13 +31,11 @@ class provider {
   std::string base;
 
  public:
-  explicit provider(std::string token) : token(std::move(token)) {}
+  explicit provider(std::string token);
 
-  std::string texture(const int zoom, const int x, const int z) { return std::format("/v4/mapbox.satellite/{}/{}/{}.png?access_token={}", zoom, x, z, token); }
+  std::string texture(int zoom, int x, int z);
 
-  std::string heightmap(const int zoom, const int x, const int z) {
-    return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
-  }
+  std::string heightmap(int zoom, int x, int z);
 };
 
 struct loading_tile {
