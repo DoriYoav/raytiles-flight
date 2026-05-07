@@ -8,7 +8,6 @@ Example video:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
-
 ## Features
 
 - Background tile downloading (HTTP + persistent on-disk cache).
@@ -54,3 +53,8 @@ int main() {
 
 See `sandbox/main.cpp` for a full runnable example with input handling.
 
+## TODOs
+
+- [ ] support raylib 6.0
+- [ ] support web builds (emscripten)
+- [ ] support more providers (TomTom, OpenStreetMap, etc.)
