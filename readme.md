@@ -20,6 +20,7 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 - Per-frame upload budgeting, no GPU stalls on bursty load.
 - Ground-truth altitude queries (`ground_height`) for collision / spawning.
 - RAII everywhere: zero manual `Unload*` calls, zero leaks on error paths.
+- Configurable! fit it to your needs by tweaking `raytiles::config` fields.
 
 ## Quick Start
 
