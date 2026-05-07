@@ -63,3 +63,4 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 - [ ] support web builds (emscripten)
 - [ ] support more providers (TomTom, OpenStreetMap, etc.)
 - [ ] support more than level 15 zoom
+- [ ] add sky module (atmosphere + sun + moon + stars)
