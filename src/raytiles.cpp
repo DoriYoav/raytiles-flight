@@ -177,7 +177,6 @@ streamer::streamer(config conf, provider maps_provider)
 }
 
 void streamer::update(const Camera3D &camera) {
-  DrawText(TextFormat("D/L/R: %d, %d, %d", desired_keys.size(), loading_tiles.size(), rendering_tiles.size()), 10, 10, 20, BLUE);
   // start with clearing items we've done with
   remove_unused_tiles();
 
@@ -216,8 +215,6 @@ void streamer::draw(const Camera3D &camera) {
   const float fwd_nz = cull_enabled ? fwd_z / fwd_len : 0.0f;
 
   for (const auto &[key, tile] : rendering_tiles) {
-    if (tile.done) continue;
-
     const auto size = tile_sizes.at(key.zoom);
 
     // skip tiles that lie behind the camera by more than one tile-size buffer.
@@ -242,11 +239,11 @@ void streamer::draw(const Camera3D &camera) {
 }
 
 void streamer::debug(const Camera3D &camera) {
+  const auto width = GetScreenWidth();
+  const auto height = GetScreenHeight();
   for (const auto &[key, tile] : rendering_tiles) {
-    if (tile.done) continue;
-
     const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
-    if (x < 0 || x > 800 || y < 0 || y > 600) continue;
+    if (x < 0 || x > width || y < 0 || y > height) continue;
 
     Color c = key.zoom == 14 ? RED : GREEN;
     DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, c);
