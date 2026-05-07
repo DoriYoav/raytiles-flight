@@ -82,7 +82,7 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 
 ## Public API
 
-Everything you need is in [`include/raytiles.h`](include/raytiles.h):
+Everything you need is in [`include/raytiles.h`](raytiles.h):
 
 - **`raytiles::config`** — tunables (zoom range, render radius, fog, cache paths, …). All defaults are sensible.
 - **`raytiles::provider`** — wraps your map-service API token; constructs URLs.

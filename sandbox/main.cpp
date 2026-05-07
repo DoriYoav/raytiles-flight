@@ -4,7 +4,7 @@
 #include <string>
 #include <string_view>
 
-#include "raytiles.h"
+#include "../raytiles.h"
 #include "rlgl.h"
 
 static std::string required_env(const char *name, std::string_view label) {

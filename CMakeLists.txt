@@ -30,9 +30,9 @@ if (NOT TARGET httplib)
 endif ()
 
 add_library(${PROJECT_NAME} STATIC
+        raytiles.h
         src/raytiles.cpp
         src/downloader.hpp
-        include/raytiles.h
         src/tilekey.hpp
 )
 
