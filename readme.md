@@ -9,8 +9,6 @@ Example video:
 https://github.com/user-attachments/assets/c30d978b-8434-4eb6-ab9d-5e2862a71fe5
 
 
---- 
-
 ## Features
 
 - Background tile downloading (HTTP + persistent on-disk cache).
