@@ -6,7 +6,7 @@ Built for small-scale flight simulators, mission planners, and similar geospatia
 
 Example video:
 
-![example](https://raw.githubusercontent.com/ziv/raytiles/main/example.mov)
+https://github.com/user-attachments/assets/c30d978b-8434-4eb6-ab9d-5e2862a71fe5
 
 
 --- 
