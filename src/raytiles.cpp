@@ -1,4 +1,4 @@
-#include "raytiles.h"
+#include "../raytiles.h"
 
 #include <raylib.h>
 

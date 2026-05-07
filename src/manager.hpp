@@ -8,10 +8,10 @@
 #include <unordered_set>
 #include <vector>
 
+#include "../raytiles.h"
 #include "downloader.hpp"
 #include "raii.hpp"
 #include "raylib.h"
-#include "raytiles.h"
 #include "tilekey.hpp"
 
 namespace raytiles {
