@@ -1,5 +1,4 @@
-#ifndef RAYTILES_MANAGER_HPP
-#define RAYTILES_MANAGER_HPP
+#pragma once
 
 #include <future>
 #include <optional>
@@ -75,5 +74,3 @@ class manager {
 };
 
 }  // namespace raytiles
-
-#endif  // RAYTILES_MANAGER_HPP
