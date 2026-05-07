@@ -4,6 +4,8 @@
 map provider (Mapbox by default), turns them into displaced 3D meshes, and renders the world around a moving camera.
 Built for small-scale flight simulators, mission planners, and similar geospatial visualizations.
 
+
+
 ## Features
 
 - Background tile downloading (HTTP + persistent on-disk cache).

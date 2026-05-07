@@ -190,7 +190,7 @@ manager::manager(config conf, provider maps_provider)
   constexpr int heightmapSlotIndex = MATERIAL_MAP_ROUGHNESS;
   SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightMap"), &heightmapSlotIndex, SHADER_UNIFORM_INT);
 
-  constexpr float heightScale = 1.0;
+  constexpr float heightScale = 3.0;
   SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightScale"), &heightScale, SHADER_UNIFORM_FLOAT);
 
   // todo cache keys and add to "update_shader_uniforms()" too allow change those values based on camera y position

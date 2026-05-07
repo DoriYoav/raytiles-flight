@@ -73,7 +73,7 @@ int main() {
     streamer.draw(camera);
     DrawGrid(100, 10.0f);
     EndMode3D();
-    streamer.debug(camera);
+    // streamer.debug(camera);
     EndDrawing();
 
     const auto dt = GetFrameTime();
