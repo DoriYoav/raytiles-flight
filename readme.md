@@ -75,7 +75,7 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 
 - [x] support raylib 6.0
 - [ ] add clear method to flush the cache and reset the streamer
-- [ ] support windows builds (MSVC + MinGW)
+- [x] support windows builds (MSVC + MinGW)
 - [x] support Linux builds (GCC + Clang)
 - [ ] support web builds (emscripten)
 - [x] support more providers (TomTom, OpenStreetMap, etc.)
