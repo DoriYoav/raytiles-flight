@@ -1,11 +1,14 @@
 # Raytiles
 
-<img src="raytiles.png" alt="logo" width="256" align="right"/>
+<img src="res/raytiles.png" alt="logo" width="256" align="right"/>
 
 3D world streaming engine for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you, rendered
 in real-time from satellite imagery and elevation data.
 
-Built for small-scale flight simulators, mission planners, and similar geospatial visualizations. Allow streaming any
+Originally developed for a flight simulator project, and extracted into a standalone library to allow others to use it
+in their own projects.
+
+Built for small-scale flight simulators, mission planners, and any other geospatial visualizations. Allow streaming any
 location on Earth at zoom level up to 15.
 
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
@@ -21,6 +24,8 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 - Ground-truth **altitude queries** (`ground_height`) for collision / spawning.
 - **RAII** everywhere: zero manual `Unload*` calls, zero leaks on error paths.
 - **Configurable**! fit it to your needs by tweaking `raytiles::config` fields.
+
+![how it works](res/how-it-works.png)
 
 ## Quick Start
 
