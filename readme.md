@@ -11,6 +11,8 @@ raylib application.
 Built for small-scale flight simulators, mission planners, and any other geospatial visualizations. Allow streaming any
 location on Earth at zoom level up to 15.
 
+[![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
+
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
