@@ -76,6 +76,14 @@ int main() {
 
 See `sandbox/main.cpp` for a full runnable example with input handling.
 
+---
+
+<img src="res/raylove.png" align="left">
+
+Made with ❤️ to the raylib community. If you find this library useful, please consider starring the repo and sharing it with your friends! Contributions and feedback are always welcome. Happy coding!
+
+---
+
 ## TODOs
 
 - [x] support raylib 6.0
@@ -86,9 +94,3 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 - [x] support more providers (TomTom, OpenStreetMap, etc.)
 - [ ] support more than level 15 zoom
 - [ ] add sky module (atmosphere + sun + moon + stars)
-
----
-
-<img src="res/raylove.png" align="left">
-
-Made with ❤️ to the raylib community. If you find this library useful, please consider starring the repo and sharing it with your friends! Contributions and feedback are always welcome. Happy coding!
