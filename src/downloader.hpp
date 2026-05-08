@@ -60,7 +60,7 @@ namespace raytiles {
             // single host, so we can keep the TLS connection alive across many tiles
             // instead of paying handshake cost per fetch. the client is owned by the
             // worker thread so no synchronization is needed.
-            httplib::Client cli("https://api.mapbox.com");
+            httplib::Client cli(config.host.c_str());
             cli.set_follow_location(true);
             cli.set_connection_timeout(10);
             cli.set_read_timeout(5);
