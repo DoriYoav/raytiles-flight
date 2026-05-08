@@ -5,8 +5,8 @@
 3D world streaming engine for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you, rendered
 in real-time from satellite imagery and elevation data.
 
-Originally developed for a flight simulator project, and extracted into a standalone library to allow others to use it
-in their own projects.
+Originally developed for a flight simulator project, and extracted into a standalone library to allow embedding in any
+raylib application.
 
 Built for small-scale flight simulators, mission planners, and any other geospatial visualizations. Allow streaming any
 location on Earth at zoom level up to 15.
@@ -17,13 +17,15 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
 ## Features
 
-- Background tile downloading (HTTP + persistent on-disk cache).
+- Streaming **ANY** location on Earth!
+- **Background** tile downloading (HTTP + persistent on-disk cache).
 - Adaptive **LOD** (level-of-detail): more detail near the camera, less far away.
 - **GPU**-side displacement via a heightmap-driven vertex shader.
 - Per-frame upload **budgeting**, no GPU stalls on bursty load.
 - Ground-truth **altitude queries** (`ground_height`) for collision / spawning.
 - **RAII** everywhere: zero manual `Unload*` calls, zero leaks on error paths.
 - **Configurable**! fit it to your needs by tweaking `raytiles::config` fields.
+- **Open-source** and permissively licensed (MIT)
 
 ![how it works](res/how-it-works.png)
 
