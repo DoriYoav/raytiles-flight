@@ -12,6 +12,7 @@ Built for small-scale flight simulators, mission planners, and any other geospat
 location on Earth at zoom level up to 15.
 
 [![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
+[![Linux Build](https://github.com/ziv/raytiles/actions/workflows/linux.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/linux.yml)
 
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
