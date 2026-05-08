@@ -15,16 +15,20 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg_cache
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create Cache Directory
+        run: mkdir -p ${{ github.workspace }}/vcpkg_cache
+
       - name: Cache vcpkg archives
         uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\vcpkg\archives
-          key: vcpkg-openssl-${{ runner.os }}
+          path: ${{ github.workspace }}/vcpkg_cache
+          key: vcpkg-openssl-${{ runner.os }}-v2
 
       - name: Install OpenSSL
         run: vcpkg install openssl:x64-windows
