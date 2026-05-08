@@ -100,16 +100,18 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 
 **raytiles** is designed to be provider-agnostic, allowing you to use any tile server that follows the XYZ tiling
 scheme. By default, it comes with a built-in providers, Esri for texture and Terrarium for heightmap, but you can easily
-configure any other provider using the `pool_config` struct.
+configure any other provider using the `raytiles::pool_config ` struct.
 
 The default providers are configured as follows:
 
 ```c++
-std::string texture_host = "https://server.arcgisonline.com";
-std::string texture_url_path = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
+raytiles::pool_config pool_conf;
 
-std::string heightmap_host = "https://s3.amazonaws.com";
-std::string heightmap_url_path = "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png";
+pool_conf.texture_host          = "https://server.arcgisonline.com";
+pool_conf.texture_url_path      = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
+
+pool_conf.heightmap_host        = "https://s3.amazonaws.com";
+pool_conf.heightmap_url_path    = "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png";
 ```
 
 Replacing the heightmap provider require to choose the right height calculation strategy. [TBC]
