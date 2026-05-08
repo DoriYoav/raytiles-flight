@@ -70,6 +70,6 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 - [ ] support windows builds (MSVC + MinGW)
 - [ ] support Linux builds (GCC + Clang)
 - [ ] support web builds (emscripten)
-- [ ] support more providers (TomTom, OpenStreetMap, etc.)
+- [x] support more providers (TomTom, OpenStreetMap, etc.)
 - [ ] support more than level 15 zoom
 - [ ] add sky module (atmosphere + sun + moon + stars)
