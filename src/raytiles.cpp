@@ -129,19 +129,6 @@ void main()
 )";
     } // namespace
 
-    // provider
-
-    provider::provider(std::string token) : token(std::move(token)) {
-    }
-
-    std::string provider::texture(const int zoom, const int x, const int z) const {
-        return std::format("/v4/mapbox.satellite/{}/{}/{}.png?access_token={}", zoom, x, z, token);
-    }
-
-    std::string provider::heightmap(const int zoom, const int x, const int z) const {
-        return std::format("/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}", zoom, x, z, token);
-    }
-
     // manager
 
     manager::manager(config conf, pool_config pool_conf)

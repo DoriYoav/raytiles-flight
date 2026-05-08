@@ -118,23 +118,6 @@ namespace raytiles {
         std::string token = "";
     };
 
-    /// Builds tile URLs for the underlying map service (Mapbox by default).
-    /// Construct once and pass to `streamer`. Holds the API token.
-    class provider {
-        std::string token;
-
-    public:
-        /// @param token API token for the map service. Must be non-empty.
-        explicit provider(std::string token);
-
-        /// Returns the URL path for the satellite tile at `(zoom, x, z)`.
-        std::string texture(int zoom, int x, int z) const;
-
-        /// Returns the URL path for the heightmap (RGB-encoded elevation) tile at
-        /// `(zoom, x, z)`.
-        std::string heightmap(int zoom, int x, int z) const;
-    };
-
     class manager;
 
     /// Per-frame driver that maintains the working set of tiles around a camera
