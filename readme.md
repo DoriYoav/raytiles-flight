@@ -2,7 +2,7 @@
 
 <img src="res/raytiles.png" alt="logo" width="256" align="right"/>
 
-3D world streaming engine for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you, rendered
+3D world streaming engine 🌎 for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you, rendered
 in real-time from satellite imagery and elevation data.
 
 Originally developed for a flight simulator project, and extracted into a standalone library to allow embedding in any
