@@ -17,6 +17,10 @@ location on Earth at zoom level up to 15.
 [![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
 [![Emscripten Build](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml)
 
+![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
+![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
+
+
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
