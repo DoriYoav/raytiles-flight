@@ -30,7 +30,9 @@ endif ()
 
 add_library(${PROJECT_NAME}
         raytiles.h
+        craytiles.h
         src/raytiles.cpp
+        src/craytiles.cpp
         src/downloader.hpp
         src/tilekey.hpp
 )
