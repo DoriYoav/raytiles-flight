@@ -1,0 +1,28 @@
+name: Windows Build
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches: [ "main" ]
+#  pull_request:
+#    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenSSL
+        run: vcpkg install openssl:x64-windows
+
+      - name: Configure CMake
+        run: >
+          cmake -B build 
+          -DCMAKE_BUILD_TYPE=Release 
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+
+      - name: Build Project
+        run: cmake --build build --config Release
