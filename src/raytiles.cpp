@@ -198,7 +198,7 @@ void main()
         process_loaded_tiles();
 
         // do not update tiles list if didn't pass enough distance
-        if (Vector3DistanceSqr(position, last_position) < conf.update_distance && std::fabsf(position.y - last_position.y) < conf.update_height) return;
+        if (Vector3DistanceSqr(position, last_position) < conf.update_distance && std::fabs(position.y - last_position.y) < conf.update_height) return;
         last_position = position;
 
         // use current location to build "desired_tiles" map
