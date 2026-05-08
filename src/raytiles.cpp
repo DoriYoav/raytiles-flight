@@ -313,8 +313,8 @@ void main()
         for (int zoom = conf.max_zoom; zoom >= conf.base_zoom; --zoom) {
             const float size = tile_sizes[zoom - conf.base_zoom];
 
-            const int tile_x = static_cast<int>(std::floorf(position.x / size));
-            const int tile_z = static_cast<int>(std::floorf(position.z / size));
+            const int tile_x = static_cast<int>(std::floor(position.x / size));
+            const int tile_z = static_cast<int>(std::floor(position.z / size));
 
             const auto it = rendering_tiles.find(TileKey{zoom, tile_x, tile_z});
             if (it == rendering_tiles.end()) continue;
@@ -367,8 +367,8 @@ void main()
                 for (int oz = 0; oz < 2; ++oz) self(self, child_zoom, cx0 + ox, cz0 + oz);
         };
 
-        const int current_tile_x = static_cast<int>(std::floorf(last_position.x / conf.base_zoom_tile_size));
-        const int current_tile_z = static_cast<int>(std::floorf(last_position.z / conf.base_zoom_tile_size));
+        const int current_tile_x = static_cast<int>(std::floor(last_position.x / conf.base_zoom_tile_size));
+        const int current_tile_z = static_cast<int>(std::floor(last_position.z / conf.base_zoom_tile_size));
 
         const auto r = radius(last_position.y);
         const auto allowed_radius = (r - 1) * (r - 1);
