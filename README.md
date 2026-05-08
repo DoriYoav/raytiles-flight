@@ -20,6 +20,8 @@ location on Earth at zoom level up to 15.
 [![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
 [![Emscripten Build](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml)
 
+## Example
+
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
@@ -93,6 +95,24 @@ int main() {
 ```
 
 See `sandbox/main.cpp` for a full runnable example with input handling.
+
+## Providers
+
+**raytiles** is designed to be provider-agnostic, allowing you to use any tile server that follows the XYZ tiling
+scheme. By default, it comes with a built-in providers, Esri for texture and Terrarium for heightmap, but you can easily
+configure any other provider using the `pool_config` struct.
+
+The default providers are configured as follows:
+
+```c++
+std::string texture_host = "https://server.arcgisonline.com";
+std::string texture_url_path = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
+
+std::string heightmap_host = "https://s3.amazonaws.com";
+std::string heightmap_url_path = "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png";
+```
+
+Replacing the heightmap provider require to choose the right height calculation strategy. [TBC]
 
 ---
 
