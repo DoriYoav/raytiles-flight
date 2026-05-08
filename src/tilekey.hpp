@@ -1,6 +1,5 @@
 #pragma once
 #include <cstddef>
-#include <unordered_map>
 
 namespace raytiles {
     struct TileKey {

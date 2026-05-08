@@ -1,9 +1,6 @@
-#ifndef RAYTILES_RAII_HPP
-#define RAYTILES_RAII_HPP
+#pragma once
 
 #include <raylib.h>
-
-#include <utility>
 
 namespace raytiles::raii {
 
@@ -79,4 +76,3 @@ inline model load_model_from_mesh(Mesh m) { return model{LoadModelFromMesh(m)}; 
 
 }  // namespace raytiles::raii
 
-#endif  // RAYTILES_RAII_HPP
