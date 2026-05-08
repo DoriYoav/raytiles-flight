@@ -20,158 +20,155 @@
 #include "httplib.h"
 
 namespace raytiles {
-// pool of background workers. each job downloads a tile (or reads it from the
-// on-disk cache) and resolves a future with the raw file bytes. raylib is not
-// thread-safe (image decoders, TextFormat/TextToLower static buffers, internal
-// trace state including TraceLog itself), so workers must NEVER touch any
-// raylib API. all decoding is deferred to the main thread once the future
-// resolves.
-class pool {
-  // todo allow logging from threads using config
-  // tiny thread-safe logger: serializes writes to stderr behind a single mutex
-  // so log lines never interleave. used in workers in place of TraceLog.
-  static void log_line(const std::string_view level, const std::string_view msg) {
-    static std::mutex log_mtx;
-    std::lock_guard lock(log_mtx);
-    std::fprintf(stderr, "[%.*s] %.*s\n", static_cast<int>(level.size()), level.data(), static_cast<int>(msg.size()), msg.data());
-    std::fflush(stderr);
-  }
-
-  struct ImageJob {
-    std::string path;
-    std::string url;
-    std::promise<std::string> promise;
-  };
-
-  std::vector<std::jthread> workers;
-  std::queue<ImageJob> image_queue;
-  std::map<std::string, std::shared_future<std::string> > in_flight_bytes;
-  std::mutex mtx;
-  // condition_variable_any (not std::condition_variable!) is required so we can
-  // use the 3-arg wait(lock, stop_token, predicate) overload that cooperates
-  // with std::jthread::request_stop(). do not "simplify" to condition_variable
-  // - workers would never wake up on shutdown and ~pool would hang forever.
-  std::condition_variable_any cv;
-
-  // flags for development
-  bool allow_insecure_tls;
-  bool allow_logger;
-
-  void worker_loop(const std::stop_token &st) {
-    bool use_logger = allow_logger;
-    // one persistent http client per worker. mapbox endpoints all live under a
-    // single host, so we can keep the TLS connection alive across many tiles
-    // instead of paying handshake cost per fetch. the client is owned by the
-    // worker thread so no synchronization is needed.
-    httplib::Client cli("https://api.mapbox.com");
-    cli.set_follow_location(true);
-    cli.set_connection_timeout(10);
-    cli.set_read_timeout(5);
-    cli.set_keep_alive(true);
-    cli.enable_server_certificate_verification(!allow_insecure_tls);
-
-    while (true) {
-      ImageJob img_job;
-      {
-        std::unique_lock lock(mtx);
-        if (!cv.wait(lock, st, [this] { return !image_queue.empty(); })) return;
-        img_job = std::move(image_queue.front());
-        image_queue.pop();
-      }
-
-      try {
-        std::string bytes;
-        if (auto body = fetch(cli, img_job.path, img_job.url); body) {
-          if (use_logger) log_line("DEBUG", std::format("tile downloaded: {} ", img_job.path));
-          write_atomic(img_job.path, *body);
-          bytes = std::move(*body);
-        } else {
-          bytes = read_file(img_job.path);
-          if (use_logger) log_line("DEBUG", std::format("tile loaded from cache: {}", img_job.path));
+    // pool of background workers. each job downloads a tile (or reads it from the
+    // on-disk cache) and resolves a future with the raw file bytes. raylib is not
+    // thread-safe (image decoders, TextFormat/TextToLower static buffers, internal
+    // trace state including TraceLog itself), so workers must NEVER touch any
+    // raylib API. all decoding is deferred to the main thread once the future
+    // resolves.
+    class pool {
+        // todo allow logging from threads using config
+        // tiny thread-safe logger: serializes writes to stderr behind a single mutex
+        // so log lines never interleave. used in workers in place of TraceLog.
+        static void log_line(const std::string_view level, const std::string_view msg) {
+            static std::mutex log_mtx;
+            std::lock_guard lock(log_mtx);
+            std::fprintf(stderr, "[%.*s] %.*s\n", static_cast<int>(level.size()), level.data(), static_cast<int>(msg.size()), msg.data());
+            std::fflush(stderr);
         }
-        img_job.promise.set_value(std::move(bytes));
-      } catch (...) {
-        try {
-          img_job.promise.set_exception(std::current_exception());
-        } catch (...) {
-          // promise already satisfied or broken; nothing else we can do
+
+        struct ImageJob {
+            std::string path;
+            std::string url;
+            std::promise<std::string> promise;
+        };
+
+        pool_config config;
+        std::vector<std::jthread> workers;
+        std::queue<ImageJob> image_queue;
+        std::map<std::string, std::shared_future<std::string> > in_flight_bytes;
+        std::mutex mtx;
+        // condition_variable_any (not std::condition_variable!) is required so we can
+        // use the 3-arg wait(lock, stop_token, predicate) overload that cooperates
+        // with std::jthread::request_stop(). do not "simplify" to condition_variable
+        // - workers would never wake up on shutdown and ~pool would hang forever.
+        std::condition_variable_any cv;
+
+        void worker_loop(const std::stop_token &st) {
+            bool use_logger = config.use_logger;
+            // one persistent http client per worker. mapbox endpoints all live under a
+            // single host, so we can keep the TLS connection alive across many tiles
+            // instead of paying handshake cost per fetch. the client is owned by the
+            // worker thread so no synchronization is needed.
+            httplib::Client cli("https://api.mapbox.com");
+            cli.set_follow_location(true);
+            cli.set_connection_timeout(10);
+            cli.set_read_timeout(5);
+            cli.set_keep_alive(true);
+            cli.enable_server_certificate_verification(!config.allow_insecure_tls);
+
+            while (true) {
+                ImageJob img_job;
+                {
+                    std::unique_lock lock(mtx);
+                    if (!cv.wait(lock, st, [this] { return !image_queue.empty(); })) return;
+                    img_job = std::move(image_queue.front());
+                    image_queue.pop();
+                }
+
+                try {
+                    std::string bytes;
+                    if (auto body = fetch(cli, img_job.path, img_job.url); body) {
+                        if (use_logger) log_line("DEBUG", std::format("tile downloaded: {} ", img_job.path));
+                        write_atomic(img_job.path, *body);
+                        bytes = std::move(*body);
+                    } else {
+                        bytes = read_file(img_job.path);
+                        if (use_logger) log_line("DEBUG", std::format("tile loaded from cache: {}", img_job.path));
+                    }
+                    img_job.promise.set_value(std::move(bytes));
+                } catch (...) {
+                    try {
+                        img_job.promise.set_exception(std::current_exception());
+                    } catch (...) {
+                        // promise already satisfied or broken; nothing else we can do
+                    }
+                }
+                {
+                    std::lock_guard lock(mtx);
+                    in_flight_bytes.erase(img_job.path);
+                }
+            }
         }
-      }
-      {
-        std::lock_guard lock(mtx);
-        in_flight_bytes.erase(img_job.path);
-      }
-    }
-  }
 
-  static std::string read_file(const std::string &path) {
-    std::ifstream f(path, std::ios::binary);
-    if (!f) {
-      throw std::runtime_error("failed to open cached file: " + path);
-    }
-    std::string out((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    return out;
-  }
+        static std::string read_file(const std::string &path) {
+            std::ifstream f(path, std::ios::binary);
+            if (!f) {
+                throw std::runtime_error("failed to open cached file: " + path);
+            }
+            std::string out((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            return out;
+        }
 
-  static std::optional<std::string> fetch(httplib::Client &cli, const std::string &path, const std::string &url) {
-    if (std::filesystem::exists(path)) return std::nullopt;
+        static std::optional<std::string> fetch(httplib::Client &cli, const std::string &path, const std::string &url) {
+            if (std::filesystem::exists(path)) return std::nullopt;
 
-    auto res = cli.Get(url);
-    if (!res || res->status != 200) {
-      const int status = res ? res->status : -1;
-      const std::string err = res ? std::string{} : httplib::to_string(res.error());
-      throw std::runtime_error(std::format("download failed: {} status={} err={}", path, status, err));
-    }
-    return std::move(res->body);
-  }
+            auto res = cli.Get(url);
+            if (!res || res->status != 200) {
+                const int status = res ? res->status : -1;
+                const std::string err = res ? std::string{} : httplib::to_string(res.error());
+                throw std::runtime_error(std::format("download failed: {} status={} err={}", path, status, err));
+            }
+            return std::move(res->body);
+        }
 
-  static void write_atomic(const std::string &path, const std::string &bytes) {
-    std::filesystem::create_directories(std::filesystem::path(path).parent_path());
-    const std::string tmp_path = path + ".tmp";
-    std::FILE *f = std::fopen(tmp_path.c_str(), "wb");
-    if (!f) {
-      throw std::runtime_error("fopen failed: " + tmp_path);
-    }
-    std::fwrite(bytes.data(), 1, bytes.size(), f);
-    std::fclose(f);
-    std::error_code ec;
-    std::filesystem::rename(tmp_path, path, ec);
-    if (ec) {
-      throw std::runtime_error("rename failed: " + path);
-    }
-  }
+        static void write_atomic(const std::string &path, const std::string &bytes) {
+            std::filesystem::create_directories(std::filesystem::path(path).parent_path());
+            const std::string tmp_path = path + ".tmp";
+            std::FILE *f = std::fopen(tmp_path.c_str(), "wb");
+            if (!f) {
+                throw std::runtime_error("fopen failed: " + tmp_path);
+            }
+            std::fwrite(bytes.data(), 1, bytes.size(), f);
+            std::fclose(f);
+            std::error_code ec;
+            std::filesystem::rename(tmp_path, path, ec);
+            if (ec) {
+                throw std::runtime_error("rename failed: " + path);
+            }
+        }
 
- public:
-  explicit pool(const bool allow_insecure_tls, const bool allow_logger, const int thread_count = 4)
-      : allow_insecure_tls(allow_insecure_tls), allow_logger(allow_logger) {
-    workers.reserve(thread_count);
-    for (int i = 0; i < thread_count; ++i) workers.emplace_back([this](const std::stop_token &st) { worker_loop(st); });
-  }
+    public:
+        explicit pool(pool_config conf)
+            : config(std::move(conf)) {
+            workers.reserve(config.download_threads);
+            for (int i = 0; i < config.download_threads; ++i) workers.emplace_back([this](const std::stop_token &st) { worker_loop(st); });
+        }
 
-  ~pool() {
-    for (auto &w : workers) w.request_stop();
-    workers.clear();
-  }
+        ~pool() {
+            for (auto &w: workers) w.request_stop();
+            workers.clear();
+        }
 
-  // returns a shared_future that resolves with the raw file bytes after download
-  // (or after reading from cache). decoding into an Image is the caller's
-  // responsibility and must be done on the main thread.
-  //
-  // race note: the worker calls promise.set_value() before erasing the entry
-  // from in_flight_bytes. if a second caller requests the same path during
-  // that window, it receives a future that is already satisfied - which is
-  // exactly the desired behavior (the bytes are immediately available, no
-  // duplicate download is queued).
-  std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url) {
-    std::lock_guard lock(mtx);
-    if (const auto it = in_flight_bytes.find(path); it != in_flight_bytes.end()) return it->second;
+        // returns a shared_future that resolves with the raw file bytes after download
+        // (or after reading from cache). decoding into an Image is the caller's
+        // responsibility and must be done on the main thread.
+        //
+        // race note: the worker calls promise.set_value() before erasing the entry
+        // from in_flight_bytes. if a second caller requests the same path during
+        // that window, it receives a future that is already satisfied - which is
+        // exactly the desired behavior (the bytes are immediately available, no
+        // duplicate download is queued).
+        std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url) {
+            std::lock_guard lock(mtx);
+            if (const auto it = in_flight_bytes.find(path); it != in_flight_bytes.end()) return it->second;
 
-    std::promise<std::string> promise;
-    std::shared_future<std::string> future = promise.get_future().share();
-    in_flight_bytes.emplace(path, future);
-    image_queue.push({path, url, std::move(promise)});
-    cv.notify_one();
-    return future;
-  }
-};
-}  // namespace raytiles
+            std::promise<std::string> promise;
+            std::shared_future<std::string> future = promise.get_future().share();
+            in_flight_bytes.emplace(path, future);
+            image_queue.push({path, url, std::move(promise)});
+            cv.notify_one();
+            return future;
+        }
+    };
+} // namespace raytiles

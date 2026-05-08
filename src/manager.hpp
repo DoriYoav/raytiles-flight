@@ -32,7 +32,7 @@ struct loaded_tile {
 
 class manager {
  public:
-  manager(config conf, provider maps_provider);
+  manager(config conf, provider maps_provider, pool_config pool_conf);
 
   void update(const Camera3D &camera);
   void draw(const Camera3D &camera);
