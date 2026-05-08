@@ -12,14 +12,13 @@ raylib application.
 Built for small-scale flight simulators, mission planners, and any other geospatial visualizations. Allow streaming any
 location on Earth at zoom level up to 15.
 
+![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
+![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
+
 [![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
 [![Linux Build](https://github.com/ziv/raytiles/actions/workflows/linux.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/linux.yml)
 [![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
 [![Emscripten Build](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml)
-
-![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
-![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
-
 
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
