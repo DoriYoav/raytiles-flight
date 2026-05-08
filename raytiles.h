@@ -59,11 +59,6 @@ namespace raytiles {
         /// Whichever limit is hit first stops the loop.
         int max_uploads_per_frame = 8;
 
-        /// Number of background download workers. Downloads are I/O-bound so it's
-        /// safe to use more threads than CPU cores; 4 is a reasonable default for
-        /// HTTP keep-alive against a single host.
-        int download_threads = 4;
-
         /// World-space anchor in tile coordinates at `base_zoom`. The streamer
         /// translates tile XY to world XZ relative to this anchor so the world
         /// origin is wherever you want it (e.g. your runway).
@@ -79,10 +74,6 @@ namespace raytiles {
         /// upload. Strongly recommended; avoids shimmering at distance.
         bool use_mipmap = true;
 
-        /// Skip TLS certificate verification for tile downloads. Only useful for
-        /// local proxies; never enable against a real server.
-        bool allow_insecure_tls = false;
-
         /// Vertical drop (in meters) of the skirt geometry below each tile's edge.
         /// Larger values hide cracks more reliably but cost more fill rate.
         float skirt_drop = 1000.0f;
@@ -97,12 +88,6 @@ namespace raytiles {
         /// Weather to log from the threads or from the main process
         /// Logging from main thread/process is done via raylib's TraceLog function
         bool use_logger = false;
-        bool use_threads_logger = false;
-
-        /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
-        /// `std::vformat`. Parent directories are created on demand.
-        std::string texture_cache_path = "assets/tiles/texture/{}/{}/{}.png";
-        std::string heightmap_cache_path = "assets/tiles/heightmap/{}/{}/{}.png";
     };
 
     struct pool_config {
@@ -125,6 +110,8 @@ namespace raytiles {
 
         /// Providers URLs template items
         /// URL always constructed from Zoom/X/Z and optional token
+        /// Can be replaced with any provider following the XYZ (Slippy map) format
+        /// and provide RGB heightmaps.
         std::string host = "https://api.mapbox.com";
         std::string texture_url_path = "/v4/mapbox.satellite/{}/{}/{}.png?access_token={}";
         std::string heightmap_url_path = "/v4/mapbox.terrain-rgb/{}/{}/{}.pngraw?access_token={}";
@@ -176,7 +163,7 @@ namespace raytiles {
         /// @note A raylib window must already be initialized (`InitWindow`) before
         ///       constructing a streamer because shader / texture creation requires
         ///       a live GL context.
-        explicit streamer(config conf, provider maps_provider, pool_config pool_conf);
+        explicit streamer(config conf, pool_config pool_conf);
 
         ~streamer();
 

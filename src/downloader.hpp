@@ -170,5 +170,17 @@ namespace raytiles {
             cv.notify_one();
             return future;
         }
+
+        std::shared_future<std::string> enqueue_texture(int zoom, int x, int y) {
+            const auto path = std::vformat(config.texture_cache_path, std::make_format_args(zoom, x, y));
+            const auto url = std::vformat(config.texture_url_path, std::make_format_args(zoom, x, y, config.token));
+            return enqueue_and_load(path, url);
+        }
+
+        std::shared_future<std::string> enqueue_heightmap(int zoom, int x, int y) {
+            const auto path = std::vformat(config.heightmap_cache_path, std::make_format_args(zoom, x, y));
+            const auto url = std::vformat(config.heightmap_url_path, std::make_format_args(zoom, x, y, config.token));
+            return enqueue_and_load(path, url);
+        }
     };
 } // namespace raytiles

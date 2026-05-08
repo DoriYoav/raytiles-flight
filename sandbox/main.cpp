@@ -19,15 +19,17 @@ int main() {
 
     InitWindow(800, 600, "raytiles");
 
+    // streamer configuration, set the anchor tiles (currently around greece)
     raytiles::config conf;
     conf.anchor_x_tile = 1179.0f;
     conf.anchor_z_tile = 797.0f;
 
+    // pool configuration, set your mapbox token
     raytiles::pool_config pool_conf;
     pool_conf.token = required_env("MAPBOX_TOKEN", "mapbox token");
 
-    const raytiles::provider provider(required_env("MAPBOX_TOKEN", "mapbox token"));
-    const raytiles::streamer streamer(conf, provider, pool_conf);
+    // create the streamer with both configurations
+    const raytiles::streamer streamer(conf, pool_conf);
 
     Camera3D camera;
     camera.position = Vector3{5000.0f, 3000.0f, 5000.0f};
@@ -41,11 +43,14 @@ int main() {
     streamer.set_fog_color(SKYBLUE);
 
     while (!WindowShouldClose()) {
+        // update the streamer with camera
         streamer.update(camera);
+
         BeginDrawing();
         ClearBackground(SKYBLUE);
 
         BeginMode3D(camera);
+        // draw the world around the camera
         streamer.draw(camera);
         EndMode3D();
         // streamer.debug(camera);

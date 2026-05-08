@@ -144,9 +144,8 @@ void main()
 
     // manager
 
-    manager::manager(config conf, provider maps_provider, pool_config pool_conf)
+    manager::manager(config conf, pool_config pool_conf)
         : conf(std::move(conf)),
-          maps_provider(std::move(maps_provider)),
           displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
           tile_downloader(std::move(pool_conf)) {
         // set the rendering distance
@@ -494,17 +493,14 @@ void main()
         const auto scale = 1 << (tile.zoom - conf.base_zoom);
         const auto tx = tile.x + conf.anchor_x_tile * scale;
         const auto tz = tile.z + conf.anchor_z_tile * scale;
-
-        const auto tx_path = std::vformat(conf.texture_cache_path, std::make_format_args(tile.zoom, tx, tz));
-        const auto hm_path = std::vformat(conf.heightmap_cache_path, std::make_format_args(tile.zoom, tx, tz));
-
         const auto tile_size = tile_sizes[tile.zoom - conf.base_zoom];
-        const auto tx_url = maps_provider.texture(tile.zoom, tx, tz);
-        const auto hm_url = maps_provider.heightmap(tile.zoom, tx, tz);
 
         auto t = loading_tile{
-            (static_cast<float>(tile.x) + 0.5f) * tile_size, (static_cast<float>(tile.z) + 0.5f) * tile_size,
-            tile_downloader.enqueue_and_load(tx_path, tx_url), tile_downloader.enqueue_and_load(hm_path, hm_url)
+            // loading tile structure
+            (static_cast<float>(tile.x) + 0.5f) * tile_size,
+            (static_cast<float>(tile.z) + 0.5f) * tile_size,
+            tile_downloader.enqueue_texture(tile.zoom, tx, tz),
+            tile_downloader.enqueue_heightmap(tile.zoom, tx, tz)
         };
 
         if (conf.use_logger) TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", tile.zoom, tile.x, tile.z, t.tx, t.tz);
@@ -535,8 +531,8 @@ void main()
 
     // streamer (pImpl forwarding)
 
-    streamer::streamer(config conf, provider maps_provider, pool_config pool_conf) : impl(
-        std::make_unique<manager>(std::move(conf), std::move(maps_provider), std::move(pool_conf))) {
+    streamer::streamer(config conf, pool_config pool_conf) : impl(
+        std::make_unique<manager>(std::move(conf), std::move(pool_conf))) {
     }
 
     streamer::~streamer() = default;

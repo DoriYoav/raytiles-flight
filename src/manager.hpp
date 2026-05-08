@@ -32,7 +32,7 @@ struct loaded_tile {
 
 class manager {
  public:
-  manager(config conf, provider maps_provider, pool_config pool_conf);
+  manager(config conf, pool_config pool_conf);
 
   void update(const Camera3D &camera);
   void draw(const Camera3D &camera);
@@ -51,7 +51,6 @@ class manager {
   [[nodiscard]] bool is_tile_covered(const TileKey &key) const;
 
   config conf;
-  provider maps_provider;
   raii::shader displacement_shader;
   pool tile_downloader;
 
