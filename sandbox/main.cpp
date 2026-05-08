@@ -7,7 +7,34 @@
 #include "../raytiles.h"
 #include "rlgl.h"
 #ifdef __EMSCRIPTEN__
-    #include <emscripten/emscripten.h>
+#include <emscripten/emscripten.h>
+#endif
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+bool g_storage_ready = false;
+
+extern "C" EMSCRIPTEN_KEEPALIVE void MarkStorageReady() {
+    g_storage_ready = true;
+    TraceLog(LOG_INFO, "STORAGE: Cached tiles loaded from IndexedDB!");
+}
+
+void InitStorage() {
+    EM_ASM(
+        FS.mkdir('/assets');
+    FS.mount(IDBFS, {}, '/assets');
+
+    FS.syncfs(true, function(err)
+    {
+        if (err) console.error("Syncfs error:", err);
+        _MarkStorageReady();
+    }
+    )
+    ;
+    )
+    ;
+}
 #endif
 
 static std::string required_env(const char *name, std::string_view label) {
@@ -20,6 +47,11 @@ static std::string required_env(const char *name, std::string_view label) {
 int main() {
     SetTraceLogLevel(LOG_DEBUG);
     InitWindow(800, 600, "raytiles");
+#ifdef __EMSCRIPTEN__
+    InitStorage();
+#endif
+    double last_sync_time = GetTime();
+
 
     // streamer configuration, set the anchor tiles (currently around greece)
     raytiles::config conf;
@@ -30,6 +62,11 @@ int main() {
     raytiles::pool_config pool_conf;
     pool_conf.download_threads = 2;
     pool_conf.token = required_env("MAPBOX_TOKEN", "mapbox token");
+
+#ifdef __EMSCRIPTEN__
+    pool_conf.texture_cache_path = "/assets/t/{}/{}/{}.png";
+    pool_conf.heightmap_cache_path = "/assets/h/{}/{}/{}.png";
+#endif
 
     // create the streamer with both configurations
     const raytiles::streamer streamer(conf, pool_conf);
@@ -62,6 +99,24 @@ int main() {
         if (IsKeyDown(KEY_S)) camera.position.z += 1500.0f * dt;
         if (IsKeyDown(KEY_A)) camera.position.x -= 1500.0f * dt;
         if (IsKeyDown(KEY_D)) camera.position.x += 1500.0f * dt;
+
+        // sync every 10 seconds
+        if (GetTime() - last_sync_time > 10.0) {
+            last_sync_time = GetTime();
+#ifdef __EMSCRIPTEN__
+            MAIN_THREAD_EM_ASM({
+                console.log("Syncing to IndexedDB...");
+                FS.syncfs(false, function(err) {
+                    if (err) console.error("IDBFS Sync error:", err);
+                    else console.log("IDBFS Sync successful!");
+
+
+                });
+
+
+            });
+#endif
+        }
     };
 
 #ifdef __EMSCRIPTEN__

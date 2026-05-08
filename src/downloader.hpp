@@ -19,6 +19,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/fetch.h>
+#include <emscripten.h>
 #else
 #if defined(_WIN32)
 #define NOGDI
