@@ -1,6 +1,6 @@
 # Raytiles
 
-<img src="res/raytiles.png" alt="logo" width="256" align="right"/>
+<img src="res/raytiles-logo.png" alt="logo" align="right"/>
 
 3D world streaming engine 🌎 for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you,
 rendered
