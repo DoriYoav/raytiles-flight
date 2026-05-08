@@ -42,7 +42,23 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
 ## Quick Start
 
+If you are using CMake, you can add **raytiles** using `FetchContent`:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(
+        raytiles
+        GIT_REPOSITORY https://github.com/ziv/raytiles.git
+        GIT_TAG v0.1.0
+        GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(raytiles)
+```
+
 `MAPBOX_TOKEN` environment variable must be set to a valid Mapbox API token before running the example below.
+
+To work with Mapbox maps, you will need to create an account on Mapbox and obtain an access token. You can sign up for a
+free account at [Mapbox](https://www.mapbox.com/).
 
 ```cpp
 #include "raytiles.h"
