@@ -13,6 +13,7 @@ location on Earth at zoom level up to 15.
 
 [![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
 [![Linux Build](https://github.com/ziv/raytiles/actions/workflows/linux.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/linux.yml)
+[![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
 
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
@@ -28,6 +29,7 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 - Ground-truth **altitude queries** (`ground_height`) for collision / spawning.
 - **RAII** everywhere: zero manual `Unload*` calls, zero leaks on error paths.
 - Pure **C++** and **C** wrapper APIs (`raytiles.h` and `craytiles.h`).
+- **Cross-platform** builds for Windows, Linux, and macOS.
 - **Configurable**! fit it to your needs by tweaking `raytiles::config` fields.
 - **Open-source** and permissively licensed (MIT)
 
