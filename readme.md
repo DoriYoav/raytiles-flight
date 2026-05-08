@@ -45,23 +45,28 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 int main() {
   InitWindow(1280, 720, "raytiles");
 
+  // streamer confuguration with default values, tweak as needed
   raytiles::config conf;
-  conf.rendering_radius = 7;
-  conf.max_zoom = 14;
+  
+  // pool configuration with your Mapbox token, tweak as needed
+  raytiles::pool_config pool_conf;
+  pool_conf.token = std::string(std::getenv("MAPBOX_TOKEN"));
 
-  raytiles::provider provider(std::getenv("MAPBOX_TOKEN"));
-  raytiles::streamer streamer(conf, provider);
+  // streamer instance
+  raytiles::streamer streamer(conf, pool_conf);
 
   Camera3D camera = /* ... your camera ... */;
 
   while (!WindowShouldClose()) {
+    // update the streamer with the current camera state
     streamer.update(camera);
 
     BeginDrawing();
-    ClearBackground(SKYBLUE);
-    BeginMode3D(camera);
-    streamer.draw(camera);
-    EndMode3D();
+        ClearBackground(SKYBLUE);
+        BeginMode3D(camera);
+            // draw the streamed world
+            streamer.draw(camera);
+        EndMode3D();
     EndDrawing();
   }
 
