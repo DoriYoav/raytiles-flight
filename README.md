@@ -2,15 +2,16 @@
 
 <img src="res/logo.png" alt="logo" width="256" align="right"/>
 
-3D world streaming engine 🌎 for [raylib](https://www.raylib.com/). Get a bird's-eye view of the world around you,
-rendered
-in real-time from satellite imagery and elevation data.
+Raytiles is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the world in
+real-time in raylib applications, allow rendering any location on Earth.
+
+Built for indie games and can feet UAVs simulations and flight planing, light weight GIS systems analysis,
+presentations, digital sandtable, and any other geospatial visualizations.
+
+Provide ground-truth altitude data for collision and spawning (gaming) or analysis (GIS) purposes.
 
 Originally developed for a flight simulator project, and extracted into a standalone library to allow embedding in any
 raylib application.
-
-Built for small-scale flight simulators, mission planners, and any other geospatial visualizations. Allow streaming any
-location on Earth at zoom level up to 15.
 
 ![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
 ![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
@@ -44,7 +45,6 @@ https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 This example demonstate lights and shadows:
 
 https://github.com/user-attachments/assets/6e373cb4-a1fa-4c21-a72a-db2d0bd96a89
-
 
 ## How It Works
 
