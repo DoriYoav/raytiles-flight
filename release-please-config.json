@@ -3,8 +3,7 @@
     ".": {
       "release-type": "simple",
       "extra-files": [
-        "CMakeLists.txt",
-        "raytiles.h"
+        "CMakeLists.txt"
       ]
     }
   }
