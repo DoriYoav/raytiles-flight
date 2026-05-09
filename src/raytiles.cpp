@@ -3,8 +3,9 @@
 #define NOGDI
 #define NOUSER
 #endif
-#include <raylib.h>
-
+#include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 #include <algorithm>
 #include <chrono>
 #include <format>
@@ -17,7 +18,6 @@
 #include <vector>
 
 #include "manager.hpp"
-#include "rlgl.h"
 #include "tilekey.hpp"
 
 using namespace std::chrono_literals;
@@ -68,48 +68,38 @@ namespace raytiles {
 #endif
 
         constexpr auto vertex_shader = GLSL_VERSION_HEADER R"(
-in vec3 vertexPosition;
-in vec2 vertexTexCoord;
+in vec3 vertexPosition;         // current vertex position
+in vec2 vertexTexCoord;         // current vertex uv
 
-uniform mat4 mvp;
-uniform mat4 matModel;
-uniform sampler2D heightMap;
-uniform float heightScale;
-uniform vec3 cameraPosition;
-uniform float skirtDrop;
+uniform mat4 mvp;               // model view projection
+uniform mat4 matModel;          // position matrix
+uniform sampler2D heightMap;    // heightmap input
+uniform float heightScale;      // scale factor input
+uniform float normalScale;      // scale factor input
+uniform vec3 cameraPosition;    // camera world position (for distance -> fog)
 
-out vec2 fragTexCoord;
-out float fragCamDist;
+out vec2 fragTexCoord;          // uv for the fragment
+out float fragCamDist;          // distance from the camera to the vertex, for fog calculation in the fragment shader
 
 void main()
 {
+    // moving the value to the fragment
     fragTexCoord = vertexTexCoord;
 
+    // terrarium heightmap calculations
+    // sample the heightmap; the RGB values are combined into a single height value.
     vec3 color = texture(heightMap, vertexTexCoord).rgb;
     vec3 c = color * 255.0;
-
-    // Terrarium heightmap calculations
     float heightValue = (c.r * 256.0 + c.g + c.b / 256.0) - 32768.0;
 
+    // update the displacement
     vec3 displacedPosition = vertexPosition;
     displacedPosition.y += heightValue * heightScale;
-
-
-    // temporary disabled
-    // add skirt to the edges of the terrain to hide gaps between tiles
-    // float epsilon = 0.001;
-    // bool isEdge = (vertexTexCoord.x < epsilon) ||
-    //               (vertexTexCoord.x > 1.0 - epsilon) ||
-    //               (vertexTexCoord.y < epsilon) ||
-    //              (vertexTexCoord.y > 1.0 - epsilon);
-    // if (isEdge)
-    // {
-    //     displacedPosition.y -= skirtDrop * heightScale;
-    // }
 
     vec3 worldPosition = vec3(matModel * vec4(displacedPosition, 1.0));
     fragCamDist = distance(worldPosition, cameraPosition);
 
+    // real pixel position on screen
     gl_Position = mvp * vec4(displacedPosition, 1.0);
 }
 )";
@@ -119,17 +109,35 @@ in vec2 fragTexCoord;
 in float fragCamDist;
 
 uniform sampler2D texture0;
+uniform sampler2D normalMap;
 uniform vec4 ambientLight;
 uniform vec4 fogColor;
 uniform float fogStart;
 uniform float fogEnd;
+uniform vec3 sunDir;
+uniform float normalScale;
+uniform float sunScale;
 
 out vec4 finalColor;
 
 void main()
 {
     vec4 texColor = texture(texture0, fragTexCoord);
-    vec4 lit = texColor * ambientLight;
+    vec3 normalColor = texture(normalMap, fragTexCoord).rgb;
+
+    // increasing normals (use scale uniform like height)
+    vec3 normal = normalColor * 2.0 - 1.0;
+    normal.xy *= normalScale;
+    normal = normalize(normal);
+
+    // sun light factor should be a uniform
+    float sunLight = max(dot(normal, normalize(sunDir)), 0.0);
+    vec4 sunColor = vec4(sunLight * sunScale);
+
+    vec4 totalLighting = ambientLight + sunColor;
+    totalLighting = clamp(totalLighting, 0.0, 1.0);
+    vec4 lit = texColor * totalLighting;
+
     float fogFactor = clamp((fragCamDist - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
     finalColor = mix(lit, fogColor, fogFactor);
 }
@@ -138,8 +146,8 @@ void main()
 
     // manager
 
-    manager::manager(config conf, pool_config pool_conf)
-        : conf(std::move(conf)),
+    manager::manager(const config &conf, pool_config pool_conf)
+        : conf(conf),
           displacement_shader(raii::load_shader_from_memory(vertex_shader, fragment_shader)),
           tile_downloader(std::move(pool_conf)) {
         // set the rendering distance
@@ -174,20 +182,39 @@ void main()
             models[idx]->materials[0].shader = *displacement_shader;
         }
 
+        // update defaults
+        fog_start = conf.fog_start;
+        fog_end = conf.fog_end;
+        height_scale = conf.height_scale;
+        normals_scale = conf.normals_scale;
+
         // cache shader locations
         cam_pos_loc = GetShaderLocation(*displacement_shader, "cameraPosition");
         ambient_loc = GetShaderLocation(*displacement_shader, "ambientLight");
         fog_color_log = GetShaderLocation(*displacement_shader, "fogColor");
+        tex_albedo_loc = GetShaderLocation(*displacement_shader, "texture0");
+        tex_height_loc = GetShaderLocation(*displacement_shader, "heightMap");
+        tex_normal_loc = GetShaderLocation(*displacement_shader, "normalMap");
+        sun_dir_loc = GetShaderLocation(*displacement_shader, "sunDir");
+        sun_scale_loc = GetShaderLocation(*displacement_shader, "sunScale");
+        height_scale_loc = GetShaderLocation(*displacement_shader, "heightScale");
+        normal_scale_loc = GetShaderLocation(*displacement_shader, "normalScale");
+        fog_start_loc = GetShaderLocation(*displacement_shader, "fogStart");
+        fog_end_loc = GetShaderLocation(*displacement_shader, "fogEnd");
 
-        // configure the slot the heightmap data use - MATERIAL_MAP_ROUGHNESS slot
-        constexpr int heightmapSlotIndex = MATERIAL_MAP_ROUGHNESS;
-        SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightMap"), &heightmapSlotIndex, SHADER_UNIFORM_INT);
+        // define the slots used with the model
+        // we hack the SHADER_LOC_MAP_ROUGHNESS to be used as the heightmap input
+        displacement_shader->locs[SHADER_LOC_MAP_ALBEDO] = tex_albedo_loc;
+        displacement_shader->locs[SHADER_LOC_MAP_ROUGHNESS] = tex_height_loc;
+        displacement_shader->locs[SHADER_LOC_MAP_NORMAL] = tex_normal_loc;
 
         // todo cache keys and add to "update_shader_uniforms()" too allow change those values based on camera y position
-        SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "heightScale"), &conf.height_scale, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "fogStart"), &conf.fog_start, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "fogEnd"), &conf.fog_end, SHADER_UNIFORM_FLOAT);
-        SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "skirtDrop"), &conf.skirt_drop, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(*displacement_shader, height_scale_loc, &height_scale, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(*displacement_shader, normal_scale_loc, &normals_scale, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(*displacement_shader, fog_start_loc, &fog_start, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(*displacement_shader, fog_end_loc, &fog_end, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(*displacement_shader, sun_scale_loc, &sun_scale, SHADER_UNIFORM_FLOAT);
+        // SetShaderValue(*displacement_shader, GetShaderLocation(*displacement_shader, "skirtDrop"), &conf.skirt_drop, SHADER_UNIFORM_FLOAT);
 
         // the reset shaders uniform (those are dynamically changed...)
         update_shader_uniforms();
@@ -219,7 +246,7 @@ void main()
         // horizontal forward direction (xz plane). tiles are flat on y=0 so testing
         // against the horizontal projection of the camera forward is enough to decide
         // "is the tile in front of (or beside) the camera?". if the camera is looking
-        // straight up/down, fwd_len ~ 0 and we disable culling for this frame.
+        // straight up/down, fwd_len ~ 0, and we disable culling for this frame.
         const float fwd_x = camera.target.x - camera.position.x;
         const float fwd_z = camera.target.z - camera.position.z;
         const float fwd_len = std::sqrt(fwd_x * fwd_x + fwd_z * fwd_z);
@@ -237,13 +264,13 @@ void main()
             if (cull_enabled) {
                 const float dx = tile.tx - camera.position.x;
                 const float dz = tile.tz - camera.position.z;
-                const float along_forward = dx * fwd_nx + dz * fwd_nz;
-                if (along_forward < -size) continue;
+                if (const float along_forward = dx * fwd_nx + dz * fwd_nz; along_forward < -size) continue;
             }
 
             const auto &model = models[key.zoom - conf.base_zoom];
             model->materials[0].maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
             model->materials[0].maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
+            model->materials[0].maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
 
             DrawModel(*model, {tile.tx, 0.0f, tile.tz}, 1.0f, WHITE);
         }
@@ -266,19 +293,19 @@ void main()
                 const float along_forward = dx * fwd_nx + dz * fwd_nz;
                 if (along_forward < -size) continue;
             }
-            DrawCubeWires({tile.tx, 0.0f, tile.tz}, size, 200.0f, size, RED);
+            DrawCubeWires({tile.tx, 0.0f, tile.tz}, size, 200.0f, size, GREEN);
         }
     }
 
     void manager::debug(const Camera3D &camera) {
-        const auto width = GetScreenWidth();
-        const auto height = GetScreenHeight();
+        const auto width = static_cast<float>(GetScreenWidth());
+        const auto height = static_cast<float>(GetScreenHeight());
         for (const auto &[key, tile]: rendering_tiles) {
             const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
             if (x < 0 || x > width || y < 0 || y > height) continue;
 
-            const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
-            DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, c);
+            // const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
+            DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, GREEN);
         }
     }
 
@@ -286,6 +313,7 @@ void main()
         std::erase_if(rendering_tiles, [&](const auto &item) {
             if (desired_keys.contains(item.first)) return false;
             if (!is_tile_covered(item.first)) return false;
+            if (!is_tile_out_of_area(item.first)) return false;
             return true;
         });
         // also drop loading-tile bookkeeping for tiles we no longer want. the
@@ -301,7 +329,7 @@ void main()
         ambient_light[2] = static_cast<float>(color.b) / 255.0f;
         ambient_light[3] = static_cast<float>(color.a) / 255.0f;
 
-        update_shader_uniforms();
+        SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
     }
 
     void manager::set_fog_color(const Color color) {
@@ -310,7 +338,45 @@ void main()
         fog_color[2] = static_cast<float>(color.b) / 255.0f;
         fog_color[3] = static_cast<float>(color.a) / 255.0f;
 
-        update_shader_uniforms();
+        SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
+    }
+
+    void manager::set_fog_start(const float distance) {
+        fog_start = distance;
+
+        SetShaderValue(*displacement_shader, fog_start_loc, &fog_start, SHADER_UNIFORM_FLOAT);
+    }
+
+    void manager::set_fog_end(const float distance) {
+        fog_end = distance;
+
+        SetShaderValue(*displacement_shader, fog_end_loc, &fog_end, SHADER_UNIFORM_FLOAT);
+    }
+
+    void manager::set_sun_direction(Vector3 direction) {
+        sun_direction[0] = direction.x;
+        sun_direction[1] = direction.y;
+        sun_direction[2] = direction.z;
+
+        SetShaderValue(*displacement_shader, sun_dir_loc, sun_direction, SHADER_UNIFORM_VEC3);
+    }
+
+    void manager::set_sun_scale(const float scale) {
+        sun_scale = scale;
+
+        SetShaderValue(*displacement_shader, sun_scale_loc, &sun_scale, SHADER_UNIFORM_FLOAT);
+    }
+
+    void manager::set_height_scale(const float scale) {
+        height_scale = scale;
+
+        SetShaderValue(*displacement_shader, height_scale_loc, &height_scale, SHADER_UNIFORM_FLOAT);
+    }
+
+    void manager::set_normals_scale(const float scale) {
+        normals_scale = scale;
+
+        SetShaderValue(*displacement_shader, normal_scale_loc, &normals_scale, SHADER_UNIFORM_FLOAT);
     }
 
     std::optional<float> manager::ground_height(const Vector3 position) const {
@@ -402,8 +468,9 @@ void main()
         for (auto it = loading_tiles.begin(); it != loading_tiles.end();) {
             auto &[key, tile] = *it;
 
-            // both byte futures must be ready
-            if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready) {
+            // all three futures must be ready
+            if (tile.tx_future.wait_for(0s) != std::future_status::ready || tile.hm_future.wait_for(0s) != std::future_status::ready || tile.nl_future.
+                wait_for(0s) != std::future_status::ready) {
                 ++it;
                 continue;
             }
@@ -415,9 +482,11 @@ void main()
             // .get(); drop the tile so the rest of the world keeps streaming.
             const std::string *tx_bytes_ptr = nullptr;
             const std::string *hm_bytes_ptr = nullptr;
+            const std::string *nm_bytes_ptr = nullptr;
             try {
                 tx_bytes_ptr = &tile.tx_future.get();
                 hm_bytes_ptr = &tile.hm_future.get();
+                nm_bytes_ptr = &tile.nl_future.get();
                 if (conf.use_logger) TraceLog(LOG_DEBUG, "tile %d/%d/%d loaded", key.zoom, key.x, key.z);
             } catch (const std::exception &e) {
                 TraceLog(LOG_WARNING, "tile %d/%d/%d download failed: %s - dropping", key.zoom, key.x, key.z, e.what());
@@ -426,13 +495,16 @@ void main()
             }
             const std::string &tx_bytes = *tx_bytes_ptr;
             const std::string &hm_bytes = *hm_bytes_ptr;
+            const std::string &nm_bytes = *nm_bytes_ptr;
 
             // take ownership of the decoded images via RAII; they unload automatically
             // on every exit path below.
             raii::image tex_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(tx_bytes.data()), static_cast<int>(tx_bytes.size()))};
             raii::image height_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(hm_bytes.data()), static_cast<int>(hm_bytes.size()))};
+            raii::image normals_img{LoadImageFromMemory(".png", reinterpret_cast<const unsigned char *>(nm_bytes.data()), static_cast<int>(nm_bytes.size()))};
 
-            if (!IsImageValid(*tex_img) || !IsImageValid(*height_img)) {
+            // todo if normal failed, use flat normal and don't fail the tile rendering
+            if (!IsImageValid(*tex_img) || !IsImageValid(*height_img) || !IsImageValid(*normals_img)) {
                 TraceLog(LOG_WARNING, "failed to load tile %d/%d/%d - dropping", key.zoom, key.x, key.z);
                 it = loading_tiles.erase(it);
                 continue;
@@ -457,15 +529,24 @@ void main()
             // kept in the loaded_tile for ground_height() queries (recast, collision).
             raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
             raii::texture height_tex = raii::load_texture_from_image(*height_img);
+            raii::texture normals_tex = raii::load_texture_from_image(*normals_img);
             SetTextureWrap(*texture_tex, TEXTURE_WRAP_CLAMP);
             SetTextureWrap(*height_tex, TEXTURE_WRAP_CLAMP);
+            SetTextureWrap(*normals_tex, TEXTURE_WRAP_CLAMP);
 
             if (conf.use_mipmap) {
                 GenTextureMipmaps(&texture_tex.get());
                 SetTextureFilter(*texture_tex, TEXTURE_FILTER_ANISOTROPIC_16X);
             }
 
-            rendering_tiles.insert_or_assign(key, loaded_tile{tile.tx, tile.tz, std::move(texture_tex), std::move(height_tex), std::move(height_img)});
+            rendering_tiles.insert_or_assign(key, loaded_tile{
+                                                 tile.tx,
+                                                 tile.tz,
+                                                 std::move(texture_tex),
+                                                 std::move(height_tex),
+                                                 std::move(height_img),
+                                                 std::move(normals_tex)
+                                             });
 
             it = loading_tiles.erase(it);
             ++promoted;
@@ -478,9 +559,10 @@ void main()
     void manager::update_shader_uniforms() {
         // set the ambient color (weather/day/night/...)
         SetShaderValue(*displacement_shader, ambient_loc, ambient_light, SHADER_UNIFORM_VEC4);
-
         // set the fog color (to match the sky)
         SetShaderValue(*displacement_shader, fog_color_log, fog_color, SHADER_UNIFORM_VEC4);
+        // set the sun direction
+        SetShaderValue(*displacement_shader, sun_dir_loc, sun_direction, SHADER_UNIFORM_VEC3);
     }
 
     loading_tile manager::spawn(const TileKey &tile) {
@@ -494,11 +576,22 @@ void main()
             (static_cast<float>(tile.x) + 0.5f) * tile_size,
             (static_cast<float>(tile.z) + 0.5f) * tile_size,
             tile_downloader.enqueue_texture(tile.zoom, tx, tz),
-            tile_downloader.enqueue_heightmap(tile.zoom, tx, tz)
+            tile_downloader.enqueue_heightmap(tile.zoom, tx, tz),
+            tile_downloader.enqueue_normals(tile.zoom, tx, tz),
         };
 
         if (conf.use_logger) TraceLog(LOG_DEBUG, "spawned tile %d,%d,%d position %f,%f", tile.zoom, tile.x, tile.z, t.tx, t.tz);
         return t;
+    }
+
+    // todo check this function
+    bool manager::is_tile_out_of_area(const TileKey &key) const {
+        const auto tile_size = tile_sizes[key.zoom - conf.base_zoom];
+        const auto rendering_radius = static_cast<float>(conf.rendering_radius) * tile_size;
+        const auto half_size = tile_size / 2.0f;
+        const auto dx = std::fabs((static_cast<float>(key.x) + 0.5f) * tile_size - last_position.x);
+        const auto dz = std::fabs((static_cast<float>(key.z) + 0.5f) * tile_size - last_position.z);
+        return dx > rendering_radius + half_size || dz > rendering_radius + half_size;
     }
 
     bool manager::is_tile_covered(const TileKey &key) const {
@@ -525,8 +618,8 @@ void main()
 
     // streamer (pImpl forwarding)
 
-    streamer::streamer(config conf, pool_config pool_conf) : impl(
-        std::make_unique<manager>(std::move(conf), std::move(pool_conf))) {
+    streamer::streamer(const config &conf, const pool_config &pool_conf) : impl(
+        std::make_unique<manager>(conf, pool_conf)) {
     }
 
     streamer::~streamer() = default;
@@ -541,5 +634,11 @@ void main()
     void streamer::debug_3d(const Camera3D &camera) const { impl->debug_3d(camera); }
     void streamer::set_ambient_light(const Color color) const { impl->set_ambient_light(color); }
     void streamer::set_fog_color(const Color color) const { impl->set_fog_color(color); }
+    void streamer::set_sun_direction(const Vector3 direction) const { impl->set_sun_direction(direction); }
+    void streamer::set_sun_scale(const float scale) const { impl->set_sun_scale(scale); }
+    void streamer::set_fog_start(const float distance) const { impl->set_fog_start(distance); }
+    void streamer::set_fog_end(const float distance) const { impl->set_fog_end(distance); }
+    void streamer::set_height_scale(const float scale) const { impl->set_height_scale(scale); }
+    void streamer::set_normals_scale(const float scale) const { impl->set_normals_scale(scale); }
     std::optional<float> streamer::ground_height(const Vector3 position) const { return impl->ground_height(position); }
 } // namespace raytiles
