@@ -29,7 +29,7 @@
 #endif
 
 #ifndef RAYTILES_NORMALS_URL_PATH
-#define RAYTILES_NORMALS_URL_PATH "/elevation-tiles-prod/normals/{zoom}/{x}/{y}.png"
+#define RAYTILES_NORMALS_URL_PATH "/elevation-tiles-prod/normal/{zoom}/{x}/{y}.png"
 #endif
 
 
@@ -58,6 +58,7 @@ namespace raytiles {
 
         /// Skirt geometry overlap factor (per side) used to hide cracks between
         /// neighboring tiles at different LODs.
+        /// Refer to the max_zoom.
         float skirt_size = 15.0f;
 
         /// Scaling the heightmap by this factor to increase or reduce the real height
