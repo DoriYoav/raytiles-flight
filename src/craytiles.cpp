@@ -47,6 +47,7 @@ RaytilesConfig RaytilesConfigDefault(void) {
     out.fog_start             = d.fog_start;
     out.fog_end               = d.fog_end;
     out.use_logger            = d.use_logger;
+    for (int i = 0; i < 5; ++i) out.ths[i] = d.ths[i];
     return out;
 }
 
@@ -93,6 +94,7 @@ RaytilesStreamer *RaytilesStreamerCreate(const RaytilesConfig     *conf,
     c.fog_start             = conf->fog_start;
     c.fog_end               = conf->fog_end;
     c.use_logger            = conf->use_logger;
+    for (int i = 0; i < 5; ++i) c.ths[i] = conf->ths[i];
 
     raytiles::pool_config p{};
     p.download_threads     = pool_conf->download_threads;

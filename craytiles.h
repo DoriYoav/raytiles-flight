@@ -70,6 +70,9 @@ typedef struct RaytilesConfig {
     float  fog_end;
     /// Whether the streamer logs from the main thread via raylib's TraceLog.
     bool   use_logger;
+    /// Zoom level distance thresholds (indices correspond to zoom levels 11..15).
+    /// Tuned for performance; the defaults keep the loaded-tile count under ~600.
+    float  ths[5];
 } RaytilesConfig;
 
 /// Pool / provider parameters. Mirrors `raytiles::pool_config`.
