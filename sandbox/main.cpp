@@ -32,8 +32,9 @@ void InitStorage() {
 }
 #endif
 
+
 int main() {
-    SetTraceLogLevel(LOG_DEBUG);
+    SetTraceLogLevel(LOG_INFO);
     InitWindow(800, 600, "raytiles");
 #ifdef __EMSCRIPTEN__
     InitStorage();
@@ -43,22 +44,23 @@ int main() {
 
     // streamer configuration, set the anchor tiles (currently around greece)
     raytiles::config conf;
-    conf.anchor_x_tile = 1179.0f; // somewhere at greece
-    conf.anchor_z_tile = 797.0f;
-    // conf.max_zoom = 15;
+    conf.use_logger = true;
+    conf.anchor_x_tile = 1176.0f; // somewhere at greece
+    conf.anchor_z_tile = 796.0f;
     conf.height_scale = 3.0f;
     conf.skirt_size = 50;
 
     // pool configuration, set your mapbox token
     raytiles::pool_config pool_conf;
-    pool_conf.download_threads = 2; // good enough
+    pool_conf.download_threads = 8; // just for fun
+    // pool_conf.use_logger = true;
 
 #ifdef __EMSCRIPTEN__
     pool_conf.texture_cache_path = "/assets/t/{}/{}/{}.png";
     pool_conf.heightmap_cache_path = "/assets/h/{}/{}/{}.png";
 #endif
 
-    // create the streamer with both configurations
+    // create the streamer§§ with both configurations
     const raytiles::streamer streamer(conf, pool_conf);
     streamer.set_normals_scale(5.0f);
 
@@ -66,7 +68,7 @@ int main() {
     camera.position = Vector3{3000.0f, 5000.0f, 3000.0f};
     camera.target = Vector3{0.0f, 0.0f, 0.0f};
     camera.up = Vector3{0.0f, 1.0f, 0.0f};
-    camera.fovy = 45.0f;
+    camera.fovy = 70.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
     // rlSetClipPlanes(1, 100000);
@@ -95,10 +97,10 @@ int main() {
 
         if (IsKeyDown(KEY_W)) camera.position.z -= 1500.0f * dt;
         if (IsKeyDown(KEY_S)) camera.position.z += 1500.0f * dt;
-        if (IsKeyDown(KEY_A)) camera.position.x -= 1500.0f * dt;
-        if (IsKeyDown(KEY_D)) camera.position.x += 1500.0f * dt;
-        if (IsKeyDown(KEY_DOWN)) camera.position.y -= 1500.0f * dt;
-        if (IsKeyDown(KEY_UP)) camera.position.y += 1500.0f * dt;
+        if (IsKeyDown(KEY_A)) camera.position.x -= 4500.0f * dt;
+        if (IsKeyDown(KEY_D)) camera.position.x += 4500.0f * dt;
+        if (IsKeyDown(KEY_DOWN)) camera.position.y -= 4500.0f * dt;
+        if (IsKeyDown(KEY_UP)) camera.position.y += 4500.0f * dt;
 
         if (IsKeyDown(KEY_LEFT_BRACKET)) sun -= dt * 0.5f;
         if (IsKeyDown(KEY_RIGHT_BRACKET)) sun += dt * 0.5f;
@@ -107,7 +109,7 @@ int main() {
 
 
         const auto move = camera.position - last_pos;
-        camera.target += move;
+        // camera.target += move;
 
 
         // sync every 10 seconds
