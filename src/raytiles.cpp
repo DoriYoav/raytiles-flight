@@ -178,8 +178,8 @@ namespace raytiles {
             // const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
             // DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, GREEN);
         }
-        DrawText(TextFormat("loaded=%zu  loading=%zu needed=%zu", rendering_tiles.size(), loading_tiles.size(), desired_keys.size()), 10, 10, 30, WHITE);
-        DrawText(TextFormat("rendered=%d", rendered), 10, 50, 30, WHITE);
+        DrawText(TextFormat("loaded=%zu  loading=%zu needed=%zu", rendering_tiles.size(), loading_tiles.size(), desired_keys.size()), 10, 10, 20, WHITE);
+        DrawText(TextFormat("rendered=%d", rendered), 10, 40, 20, WHITE);
     }
 
     void manager::remove_unused_tiles() {
