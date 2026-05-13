@@ -342,7 +342,8 @@ namespace raytiles {
         // rendering limit radius based on the horizon distance from the current camera height.
         // we use the horizon distance as a limit because tiles beyond that point won't be visible anyway,
         // so no need to even request them.
-        const auto d = 3.57 * 1000 * std::sqrt(last_position.y); // the radius of rendering
+        const auto height = std::max(last_position.y, 1.0f);
+        const auto d = 3.57 * 1000 * height; // the radius of rendering
 
         // todo set clip base on the horizon
 
