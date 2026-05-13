@@ -70,9 +70,20 @@ typedef struct RaytilesConfig {
     float  fog_end;
     /// Whether the streamer logs from the main thread via raylib's TraceLog.
     bool   use_logger;
-    /// Zoom level distance thresholds (indices correspond to zoom levels 11..15).
-    /// Tuned for performance; the defaults keep the loaded-tile count under ~600.
-    float  ths[5];
+    /// Per-zoom subdivision thresholds. Parallel arrays:
+    ///   `threshold_zooms[i]`  is the zoom level
+    ///   `threshold_values[i]` is the distance threshold for that zoom
+    /// `thresholds_count` is the number of entries (must cover every zoom in
+    /// `[base_zoom, max_zoom]`).
+    ///
+    /// `RaytilesConfigDefault()` points these at library-owned static storage
+    /// (default mapping 11..15 -> 55000, 25000, 10000, 5000, 1000). The C++
+    /// `raytiles::pool_config` copies the entries into a `std::unordered_map`
+    /// on `RaytilesStreamerCreate`, so the arrays only need to remain valid
+    /// for the duration of that call.
+    const int   *threshold_zooms;
+    const float *threshold_values;
+    int          thresholds_count;
 } RaytilesConfig;
 
 /// Pool / provider parameters. Mirrors `raytiles::pool_config`.

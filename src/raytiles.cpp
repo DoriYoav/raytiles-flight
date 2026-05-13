@@ -31,13 +31,13 @@ namespace raytiles {
         : conf(conf),
           displacement_shader(raii::load_shader_from_memory(shaders::vertex_shader, shaders::fragment_shader)),
           tile_downloader(std::move(pool_conf)) {
-        const std::unordered_map<int, float> thresholds = {
-            {11, conf.ths[0]},
-            {12, conf.ths[1]},
-            {13, conf.ths[2]},
-            {14, conf.ths[3]},
-            {15, conf.ths[4]},
-        };
+        // const std::unordered_map<int, float> thresholds = {
+        //     {11, conf.ths[0]},
+        //     {12, conf.ths[1]},
+        //     {13, conf.ths[2]},
+        //     {14, conf.ths[3]},
+        //     {15, conf.ths[4]},
+        // };
 
         int res = 4;
 
@@ -45,7 +45,7 @@ namespace raytiles {
             const float ratio = static_cast<float>(1 << (zoom - conf.base_zoom));
             const auto size = conf.base_zoom_tile_size / ratio;
             const auto skirt_size = conf.skirt_size * ratio;
-            const auto th = thresholds.at(zoom);
+            const auto th = conf.thresholds.at(zoom);
 
             tiles[zoom] = TileValue{
                 size,

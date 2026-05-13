@@ -6,6 +6,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
+
 #include "raylib.h"
 
 #ifndef RAYTILES_TEXTURE_HOST
@@ -119,7 +121,15 @@ namespace raytiles {
 
         /// Zoom level distance thresholds (11 to 15)
         /// Optimized for performance and limit the tiles number under 600
-        float ths[5] = {55000.0f, 25000.0f, 10000.0f, 5000.0f, 1000.0f};
+        // float ths[5] = {55000.0f, 25000.0f, 10000.0f, 5000.0f, 1000.0f};
+
+        std::unordered_map<int, float> thresholds = {
+            {11, 55000.0f},
+            {12, 25000.0f},
+            {13, 10000.0f},
+            {14, 5000.0f},
+            {15, 1000.0f}
+        };
     };
 
     struct pool_config {
