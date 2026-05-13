@@ -10,6 +10,8 @@ namespace raytiles {
     using Meters = float;
     using MetersSq = double;
 
+    constexpr float max_world_height = 8848.0f; // Mount Everest height in meters
+
     struct Plane {
         Vector3 normal;
         float distance;
@@ -145,7 +147,7 @@ namespace raytiles::utils {
         const auto s = size / 2.0f;
         // AABB corners
         const Vector3 min = {x - s, 0.0f, z - s};
-        const Vector3 max = {x + s, 100.0f, z + s};
+        const Vector3 max = {x + s, max_world_height, z + s};
 
         for (int i = 0; i < 6; i++) {
             Vector3 p;
