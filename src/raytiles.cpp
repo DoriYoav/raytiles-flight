@@ -122,6 +122,7 @@ namespace raytiles {
     }
 
     void manager::draw(const Camera3D &camera) {
+        rendered = 0;
         // set the camera location (for distance -> fog)
         SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
         const auto f = utils::extract_frustum(camera, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()), conf.near_plane,
@@ -137,6 +138,7 @@ namespace raytiles {
             material.maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
 
             DrawMesh(*t.mesh, material, MatrixTranslate(tile.tx, 0.0f, tile.tz));
+            ++rendered;
         }
     }
 
@@ -176,13 +178,16 @@ namespace raytiles {
             // const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
             // DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, GREEN);
         }
+        DrawText(TextFormat("loaded=%zu  loading=%zu needed=%zu", rendering_tiles.size(), loading_tiles.size(), desired_keys.size()), 10, 10, 30, WHITE);
+        DrawText(TextFormat("rendered=%d", rendered), 10, 50, 30, WHITE);
     }
 
     void manager::remove_unused_tiles() {
         std::erase_if(rendering_tiles, [&](const auto &item) {
             if (desired_keys.contains(item.first)) return false;
-            // if (!is_tile_covered(item.first)) return false;
-            // if (!is_tile_out_of_area(item.first)) return false;
+            if (is_tile_out_of_area(item.first)) return true;
+            if (!is_tile_covered(item.first)) return false;
+            // if (!is_tile_out_of_area(item.first, item.second)) return false;
             return true;
         });
         // also drop loading-tile bookkeeping for tiles we no longer want. the
@@ -502,12 +507,13 @@ namespace raytiles {
     // todo check this function
     bool manager::is_tile_out_of_area(const TileKey &key) const {
         const auto &t = tiles.at(key.zoom);
-        const auto tile_size = t.size;
-        const auto rendering_radius = static_cast<float>(conf.rendering_radius) * tile_size;
-        const auto half_size = tile_size / 2.0f;
-        const auto dx = std::fabs((static_cast<float>(key.x) + 0.5f) * tile_size - last_position.x);
-        const auto dz = std::fabs((static_cast<float>(key.z) + 0.5f) * tile_size - last_position.z);
-        return dx > rendering_radius + half_size || dz > rendering_radius + half_size;
+        const MetersSq distance_sq = utils::distance_sq_to_tile(last_position, key, t.size);
+        const MetersSq far_sq = conf.fog_end * conf.fog_end;
+
+        if (distance_sq > far_sq) {
+            return true;
+        }
+        return false;
     }
 
     bool manager::is_tile_covered(const TileKey &key) const {

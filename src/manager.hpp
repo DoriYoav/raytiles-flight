@@ -88,6 +88,8 @@ namespace raytiles {
         raii::shader displacement_shader;
         pool tile_downloader;
 
+        int rendered = 0;
+
         int cam_pos_loc = -1;
         int ambient_loc = -1;
         int fog_color_log = -1;
