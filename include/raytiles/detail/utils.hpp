@@ -7,9 +7,6 @@
 #include "tile.hpp"
 
 namespace raytiles {
-    using Meters = float;
-    using MetersSq = double;
-
     constexpr float max_world_height = 8848.0f; // Mount Everest height in meters
     constexpr int max_supported_zoom = 15;
     constexpr int min_tested_zoom = 9;
@@ -18,7 +15,7 @@ namespace raytiles {
 
     struct Plane {
         Vector3 normal;
-        float distance;
+        Meters distance;
     };
 
     struct Frustum {

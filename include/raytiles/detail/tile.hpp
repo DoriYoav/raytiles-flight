@@ -7,9 +7,12 @@
 #include "raii.hpp"
 
 namespace raytiles {
+    using Meters = float;
+    using MetersSq = double;
+
     struct tile_value {
-        float size;
-        float threshold;
+        Meters size;
+        MetersSq threshold;
         raii::mesh mesh;
     };
 

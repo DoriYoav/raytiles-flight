@@ -46,6 +46,19 @@ namespace raytiles {
     /// All distances are in raylib world units (1 unit = 1 meter at base zoom in
     /// the default configuration).
     struct config {
+        /// World-space anchor in tile coordinates at `base_zoom`. The streamer
+        /// translates tile XY to world XZ relative to this anchor so the world
+        /// origin is wherever you want it (e.g. your runway).
+        int anchor_x_tile = 306;
+        int anchor_z_tile = 207;
+
+        /// Distance (in meters) at which atmospheric fog starts to fade tiles to
+        /// `set_fog_color`'s color.
+        float fog_start = 100000.0f;
+
+        /// Distance (in meters) at which fog reaches full cover.
+        float fog_end = 150000.0f;
+
         /// Lowest level-of-detail zoom that will ever be loaded. Tiles outside the
         /// camera's near radius are kept at this zoom to bound the working set.
         /// Changing this value must also update "thresholds" and "base_zoom_tile_size"
@@ -87,7 +100,7 @@ namespace raytiles {
         /// Altitude delta (in meters) that triggers a desired-set recomputation,
         /// independent of `update_distance`. Lets you stream new LODs as you climb
         /// or descend without horizontal motion.
-        float update_height = 500.0f;
+        Meters update_height = 500.0f;
 
         /// Wall-clock budget (in seconds) per frame for promoting downloaded tiles
         /// into GPU resources. Caps the cost of a single bursty frame.
@@ -96,12 +109,6 @@ namespace raytiles {
         /// Hard cap on tile promotions per frame, on top of `upload_budget_sec`.
         /// Whichever limit is hit first stops the loop.
         int max_uploads_per_frame = 8;
-
-        /// World-space anchor in tile coordinates at `base_zoom`. The streamer
-        /// translates tile XY to world XZ relative to this anchor so the world
-        /// origin is wherever you want it (e.g. your runway).
-        int anchor_x_tile = 306;
-        int anchor_z_tile = 207;
 
         /// Near / far clip planes used by the displacement shader for fog and
         /// depth precision tuning. Match these to your camera setup.
@@ -115,13 +122,6 @@ namespace raytiles {
         /// Vertical drop (in meters) of the skirt geometry below each tile's edge.
         /// Larger values hide cracks more reliably but cost more fill rate.
         float skirt_drop = 1000.0f;
-
-        /// Distance (in meters) at which atmospheric fog starts to fade tiles to
-        /// `set_fog_color`'s color.
-        float fog_start = 100000.0f;
-
-        /// Distance (in meters) at which fog reaches full cover.
-        float fog_end = 150000.0f;
 
         /// Weather to log from the threads or from the main process
         /// Logging from main thread/process is done via raylib's TraceLog function
@@ -237,13 +237,17 @@ namespace raytiles {
         /// Sets the ambient light color sent to the displacement shader. Use this
         /// to drive day / night / weather lighting changes.
         void set_ambient_light(Color color);
+
         void set_ambient_light(Vector4 color);
+
         void set_ambient_light(float r, float g, float b, float a);
 
         /// Sets the fog color for distance attenuation. Match this to your sky
         /// color for a seamless horizon.
         void set_fog_color(Color color);
+
         void set_fog_color(Vector4 color);
+
         void set_fog_color(float r, float g, float b, float a);
 
         /// Set the fog start distance, the distance from the camera
