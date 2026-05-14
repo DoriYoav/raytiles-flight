@@ -38,19 +38,43 @@ enable seamless embedding into any raylib project.
 - **Configurable**! fit it to your needs by tweaking `raytiles::config` fields.
 - **Open-source** and permissively licensed (MIT)
 
-## Examples
+## 3D Tiles
+
+**Why not use 3D Tiles? (Cesium, Google Earth, etc.)**
+
+3D Tiles is a powerful format for streaming and rendering large 3D geospatial datasets, but it comes with significant
+complexity and overhead.
+
+1. It designed for walkthroughs resolution and visual fidelity, not for flight similations.
+2. Google 3D tiles require a token and there is limited free usage, which can be a barrier for indie developers and
+   small projects.
+3. Google does not allow caching 3D Tiles data, which means that every time you want to render a location, you would
+   need to fetch the data from Google's servers, which can lead to latency issues and increased bandwidth usage.
+4. The 3D tiles GLTF format contain numbers with high precision (double) and not fit for raylib's float based rendering
+   pipeline. It requires to decode the data on CPU and upload it to GPU every frame, which can lead to performance
+   issues.
+5. Cesium 3D tiles is even more complex since we don't get ready models like Google, but instead we get only mesh data.
+   The rest is the same as Raytiles does.
+
+Actually, this project started with the intention to use 3D Tiles, and there is an implementation of a 3D Tiles renderer
+in the `legacy/` directory, but it was eventually scrapped in favor of a simpler, lightweight approach that better fits
+raytiles needs.
+
+![3D Tiles Renderer](res/example-3dtiles.png)
+
+## Raytiles Examples
+
+### Rendering Area of Interest
 
 The following example video is part of the islands of Greece, rendered with Mapbox tiles at zoom level 11 to 14:
 
 https://github.com/user-attachments/assets/0422ffea-654f-4299-8860-23f99d7d98ec
 
-This example demonstate lights and shadows:
+### Lights and Shadows (Sun effect)
+
+This example demonstrate lights and shadows:
 
 https://github.com/user-attachments/assets/6e373cb4-a1fa-4c21-a72a-db2d0bd96a89
-
-## How It Works
-
-![how it works](res/how-it-works0.png)
 
 ## Quick Start
 
@@ -125,6 +149,10 @@ pool_conf.heightmap_url_path    = "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y
 ```
 
 Replacing the heightmap provider require to choose the right height calculation strategy. [TBC]
+
+## How It Works
+
+![how it works](res/how-it-works0.png)
 
 ---
 
