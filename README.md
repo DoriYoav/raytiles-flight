@@ -170,6 +170,20 @@ pool_conf.texture_url_path = "/v4/mapbox.satellite/{zoom}/{x}/{y}.pngraw?access_
 
 ```
 
+## Caching
+
+**raytiles** includes a simple on-disk caching mechanism to store downloaded tiles, reducing bandwidth usage and
+improving performance on subsequent runs. The cache is organized by provider and tile coordinates, making it easy to
+manage and clear if needed. You can configure the cache directory and behavior through the `raytiles::config_pool`
+struct.
+
+Currently, the cache does not implement any eviction policy, so it will grow indefinitely as you download more tiles.
+You can manually clear the cache by deleting the cache directory.
+
+For caching purposes, the downloader pool does not cancel in-flight requests, so even if tile is currently not needed,
+it will still be downloaded and cached. There
+is [an open issue to add support for request cancellation](https://github.com/ziv/raytiles/issues/48).
+
 ## How It Works
 
 Raytiles is a conductor that orchestrates files read/download, GPU uploads, and rendering. The rest of the magic is
