@@ -12,6 +12,7 @@
 #include "raylib.h"
 #include "src/raii.hpp"
 #include "src/tile.hpp"
+#include "src/utils.hpp"
 
 #ifndef RAYTILES_TEXTURE_HOST
 #define RAYTILES_TEXTURE_HOST "https://server.arcgisonline.com"
@@ -81,7 +82,7 @@ namespace raytiles {
         /// Squared XZ distance the camera must travel before the desired-tile set
         /// is recomputed. Keep this large enough that small movements don't churn
         /// the working set.
-        float update_distance = 1000.0f * 1000.0f;
+        MetersSq update_distance_sq = 1000.0f * 1000.0f;
 
         /// Altitude delta (in meters) that triggers a desired-set recomputation,
         /// independent of `update_distance`. Lets you stream new LODs as you climb

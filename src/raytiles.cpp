@@ -117,7 +117,7 @@ namespace raytiles {
         process_loaded_tiles();
 
         // do not update tiles list if didn't pass enough distance
-        if (Vector3DistanceSqr(position, last_position) < conf.update_distance && std::fabs(position.y - last_position.y) < conf.update_height) return;
+        if (Vector3DistanceSqr(position, last_position) < conf.update_distance_sq && std::fabs(position.y - last_position.y) < conf.update_height) return;
         last_position = position;
 
         // use current location to build "desired_tiles" map
@@ -503,7 +503,7 @@ namespace raytiles {
     // todo check this function
     bool streamer::is_tile_out_of_area(const tile_key &key) const {
         const auto &t = tiles.at(key.zoom);
-        const MetersSq distance_sq = utils::distance_sq_to_tile(last_position, key, t.size);
+        const MetersSq distance_sq = utils::distance_sq_to_tile_xz(last_position, key, t.size);
         const MetersSq far_sq = static_cast<double>(conf.fog_end) * static_cast<double>(conf.fog_end);
 
         if (distance_sq > far_sq) {

@@ -157,11 +157,21 @@ void RaytilesStreamerDebug3D(RaytilesStreamer *streamer, Camera3D camera);
 
 /// Sets the ambient light color used by the displacement shader. Use this to
 /// drive day / night / weather lighting changes.
+/// Three variants mirror the C++ overloads: `Color` (8-bit per channel),
+/// `Vector4` (normalized 0..1 floats), and explicit float RGBA components.
 void RaytilesStreamerSetAmbientLight(RaytilesStreamer *streamer, Color color);
+void RaytilesStreamerSetAmbientLightV4(RaytilesStreamer *streamer, Vector4 color);
+void RaytilesStreamerSetAmbientLightRGBA(RaytilesStreamer *streamer,
+                                         float r, float g, float b, float a);
 
 /// Sets the fog color for distance attenuation. Match this to your sky color
 /// for a seamless horizon.
+/// Three variants mirror the C++ overloads: `Color` (8-bit per channel),
+/// `Vector4` (normalized 0..1 floats), and explicit float RGBA components.
 void RaytilesStreamerSetFogColor(RaytilesStreamer *streamer, Color color);
+void RaytilesStreamerSetFogColorV4(RaytilesStreamer *streamer, Vector4 color);
+void RaytilesStreamerSetFogColorRGBA(RaytilesStreamer *streamer,
+                                     float r, float g, float b, float a);
 
 /// Sets the distance (meters) at which fog begins blending in.
 void RaytilesStreamerSetFogStart(RaytilesStreamer *streamer, float distance);

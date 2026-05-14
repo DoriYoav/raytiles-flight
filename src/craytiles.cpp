@@ -36,7 +36,7 @@ RaytilesConfig RaytilesConfigDefault(void) {
     out.skirt_size = d.skirt_size;
     out.height_scale = d.height_scale;
     out.normals_scale = d.normals_scale;
-    out.update_distance = d.update_distance;
+    out.update_distance = d.update_distance_sq;
     out.update_height = d.update_height;
     out.upload_budget_sec = d.upload_budget_sec;
     out.max_uploads_per_frame = d.max_uploads_per_frame;
@@ -82,7 +82,7 @@ RaytilesStreamer *RaytilesStreamerCreate(const RaytilesConfig *conf,
     c.skirt_size = conf->skirt_size;
     c.height_scale = conf->height_scale;
     c.normals_scale = conf->normals_scale;
-    c.update_distance = conf->update_distance;
+    c.update_distance_sq = conf->update_distance;
     c.update_height = conf->update_height;
     c.upload_budget_sec = conf->upload_budget_sec;
     c.max_uploads_per_frame = conf->max_uploads_per_frame;
@@ -152,9 +152,31 @@ void RaytilesStreamerSetAmbientLight(RaytilesStreamer *streamer, const Color col
     streamer->impl.set_ambient_light(color);
 }
 
+void RaytilesStreamerSetAmbientLightV4(RaytilesStreamer *streamer, const Vector4 color) {
+    if (!streamer) return;
+    streamer->impl.set_ambient_light(color);
+}
+
+void RaytilesStreamerSetAmbientLightRGBA(RaytilesStreamer *streamer,
+                                         const float r, const float g, const float b, const float a) {
+    if (!streamer) return;
+    streamer->impl.set_ambient_light(r, g, b, a);
+}
+
 void RaytilesStreamerSetFogColor(RaytilesStreamer *streamer, const Color color) {
     if (!streamer) return;
     streamer->impl.set_fog_color(color);
+}
+
+void RaytilesStreamerSetFogColorV4(RaytilesStreamer *streamer, const Vector4 color) {
+    if (!streamer) return;
+    streamer->impl.set_fog_color(color);
+}
+
+void RaytilesStreamerSetFogColorRGBA(RaytilesStreamer *streamer,
+                                     const float r, const float g, const float b, const float a) {
+    if (!streamer) return;
+    streamer->impl.set_fog_color(r, g, b, a);
 }
 
 void RaytilesStreamerSetFogStart(RaytilesStreamer *streamer, const float distance) {
