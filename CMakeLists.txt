@@ -33,7 +33,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib)
 
 if (EMSCRIPTEN)
-    set(CMAKE_CXX_FLAGS_RELEASE "-Oz")
     target_compile_options(${PROJECT_NAME} PUBLIC "-pthread" "-fexceptions")
     target_link_options(${PROJECT_NAME} PUBLIC
             "-sUSE_GLFW=3"
