@@ -225,6 +225,7 @@ namespace raytiles {
 
         ~pool() {
             for (auto &w: workers) w.request_stop();
+            cv.notify_all();
             workers.clear();
         }
 
