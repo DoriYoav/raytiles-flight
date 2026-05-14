@@ -22,17 +22,24 @@ if (NOT TARGET raylib)
 endif ()
 
 add_library(${PROJECT_NAME}
-        include/raytiles.h
-        include/craytiles.h
+        include/raytiles/raytiles.h
+        include/raytiles/craytiles.h
+        include/raytiles/detail/raii.hpp
+        include/raytiles/detail/tile.hpp
+        include/raytiles/detail/utils.hpp
         src/raytiles.cpp
         src/craytiles.cpp
         src/downloader.hpp
-        src/tile.hpp
-        src/utils.hpp
         src/shaders.hpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME}
+        PUBLIC
+                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+        PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib)
 
 if (MSVC)
@@ -105,3 +112,49 @@ target_link_libraries(run_tests PRIVATE doctest::doctest)
 
 include(CTest)
 add_test(NAME AllTests COMMAND run_tests)
+
+# install rules — only emit when raytiles is the top-level project, so
+# consumers using add_subdirectory / FetchContent don't accidentally install us.
+if (PROJECT_IS_TOP_LEVEL)
+    include(GNUInstallDirs)
+    include(CMakePackageConfigHelpers)
+
+    install(TARGETS ${PROJECT_NAME}
+            EXPORT raytilesTargets
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+            INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+
+    install(DIRECTORY include/raytiles
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            FILES_MATCHING
+                PATTERN "*.h"
+                PATTERN "*.hpp"
+    )
+
+    install(EXPORT raytilesTargets
+            FILE raytilesTargets.cmake
+            NAMESPACE raytiles::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raytiles
+    )
+
+    write_basic_package_version_file(
+            "${CMAKE_CURRENT_BINARY_DIR}/raytilesConfigVersion.cmake"
+            VERSION ${PROJECT_VERSION}
+            COMPATIBILITY SameMajorVersion
+    )
+
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/raytilesConfig.cmake"
+            "include(CMakeFindDependencyMacro)\n"
+            "find_dependency(raylib)\n"
+            "include(\"\${CMAKE_CURRENT_LIST_DIR}/raytilesTargets.cmake\")\n"
+    )
+
+    install(FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/raytilesConfig.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/raytilesConfigVersion.cmake"
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/raytiles
+    )
+endif ()

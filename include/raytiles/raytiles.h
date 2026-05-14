@@ -10,9 +10,9 @@
 #include <unordered_set>
 
 #include "raylib.h"
-#include "src/raii.hpp"
-#include "src/tile.hpp"
-#include "src/utils.hpp"
+#include "detail/raii.hpp"
+#include "detail/tile.hpp"
+#include "detail/utils.hpp"
 
 #ifndef RAYTILES_TEXTURE_HOST
 #define RAYTILES_TEXTURE_HOST "https://server.arcgisonline.com"

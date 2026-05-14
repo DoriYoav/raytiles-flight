@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <string>
 
-#include "include/raytiles.h"
+#include <raytiles/raytiles.h>
 #include "fly.h"
 #include <rlgl.h>
 #include <raymath.h>

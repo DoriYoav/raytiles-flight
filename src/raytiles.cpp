@@ -1,4 +1,4 @@
-#include "../include/raytiles.h"
+#include "../include/raytiles/raytiles.h"
 #if defined(_WIN32)
 #define NOGDI
 #define NOUSER
@@ -18,8 +18,8 @@
 #include <vector>
 
 #include "downloader.hpp"
-#include "tile.hpp"
-#include "utils.hpp"
+#include "raytiles/detail/tile.hpp"
+#include "raytiles/detail/utils.hpp"
 #include "shaders.hpp"
 
 using namespace std::chrono_literals;
