@@ -188,7 +188,6 @@ namespace raytiles {
     }
 
     void streamer::remove_unused_tiles() {
-        // todo drop from rendering_tiles is still got an issue, for tiles that are not in their comfort zone - need to check grand parent/children as covered.
         std::erase_if(rendering_tiles, [&](const auto &item) {
             if (desired_keys.contains(item.first)) return false;
             if (is_tile_out_of_area(item.first)) return true;
@@ -346,15 +345,14 @@ namespace raytiles {
         // rendering limit radius based on the horizon distance from the current camera height.
         // we use the horizon distance as a limit because tiles beyond that point won't be visible anyway,
         // so no need to even request them.
-        const auto height = std::max(last_position.y, 1.0f);
-        const auto d = 3.57 * 1000 * height; // the radius of rendering
+        const auto render_radius_sq = horizon();
 
         // todo set clip base on the horizon
 
         for (int dx = -r; dx <= r; ++dx)
             for (int dz = -r; dz <= r; ++dz)
                 if (dz * dz + dx * dx < allowed_radius)
-                    build_required(conf.base_zoom, current_tile_x + dx, current_tile_z + dz, d * d);
+                    build_required(conf.base_zoom, current_tile_x + dx, current_tile_z + dz, render_radius_sq);
 
 
         // spawn new if not in rendering list
@@ -471,7 +469,7 @@ namespace raytiles {
         }
     }
 
-    loading_tile streamer::spawn(const tile_key &tile) {
+    loading_tile streamer::spawn(const tile_key &tile) const {
         const auto &te = tiles.at(tile.zoom);
         const auto scale = 1 << (tile.zoom - conf.base_zoom);
         const auto tx = tile.x + conf.anchor_x_tile * scale;
@@ -500,16 +498,17 @@ namespace raytiles {
         SetShaderValue(*displacement_shader, sun_dir_loc, sun_direction, SHADER_UNIFORM_VEC3);
     }
 
+    MetersSq streamer::horizon() const {
+        const auto height = std::max(last_position.y, 1.0f);
+        const auto d = 3.57 * 1000 * height; // the radius of rendering
+        return d * d;
+    }
+
     // todo check this function
     bool streamer::is_tile_out_of_area(const tile_key &key) const {
         const auto &t = tiles.at(key.zoom);
         const MetersSq distance_sq = utils::distance_sq_to_tile_xz(last_position, key, t.size);
-        const MetersSq far_sq = static_cast<double>(conf.fog_end) * static_cast<double>(conf.fog_end);
-
-        if (distance_sq > far_sq) {
-            return true;
-        }
-        return false;
+        return distance_sq > horizon();
     }
 
     bool streamer::is_tile_covered(const tile_key &key) const {

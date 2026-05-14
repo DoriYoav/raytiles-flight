@@ -127,7 +127,7 @@ namespace raytiles {
         /// Logging from main thread/process is done via raylib's TraceLog function
         bool use_logger = false;
 
-        /// Zoom level distance thresholds (10 to 15)
+        /// Zoom level distance thresholds (9 to 15)
         /// Optimized for performance and limit the tiles number under 600
         /// Changing base_zoom or max_zoom must be reflected here
         std::unordered_map<int, float> thresholds = {
@@ -290,7 +290,9 @@ namespace raytiles {
 
         void update_shader_uniforms();
 
-        loading_tile spawn(const tile_key &tile);
+        loading_tile spawn(const tile_key &tile) const;
+
+        [[nodiscard]] MetersSq horizon() const;
 
         [[nodiscard]] bool is_tile_covered(const tile_key &key) const;
 
