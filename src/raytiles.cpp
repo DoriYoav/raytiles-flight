@@ -87,6 +87,23 @@ namespace raytiles {
         fog_start_loc = GetShaderLocation(*displacement_shader, "fogStart");
         fog_end_loc = GetShaderLocation(*displacement_shader, "fogEnd");
 
+        // validate all slots populated
+        if (-1 == cam_pos_loc ||
+            -1 == ambient_loc ||
+            -1 == fog_color_loc ||
+            -1 == tex_albedo_loc ||
+            -1 == tex_height_loc ||
+            -1 == tex_normal_loc ||
+            -1 == sun_dir_loc ||
+            -1 == sun_scale_loc ||
+            -1 == height_scale_loc ||
+            -1 == normal_scale_loc ||
+            -1 == fog_start_loc ||
+            -1 == fog_end_loc
+        ) {
+            throw std::runtime_error("failed to get shader locations");
+        }
+
         // define the slots used with the model
         // we hack the SHADER_LOC_MAP_ROUGHNESS to be used as the heightmap input
         displacement_shader->locs[SHADER_LOC_MAP_ALBEDO] = tex_albedo_loc;
