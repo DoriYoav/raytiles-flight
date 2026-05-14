@@ -7,7 +7,8 @@ world in real-time, it allows
 you to visualize any location on Earth directly within your raylib applications.
 
 Built for indie developers and professionals alike, Raytiles perfectly fits UAV simulations, flight planning software,
-lightweight GIS analysis, presentations, digital sandtables, and any other geospatial visualizations.
+lightweight GIS analysis, presentations, digital sandtables, and any other geospatial
+visualizations ([check out the examples below!](#raytiles-examples)).
 
 It provides precise, ground-truth altitude data, essential for accurate collision detection and spawning mechanics in
 gaming, as well as topographical analysis for GIS purposes.
@@ -45,7 +46,7 @@ enable seamless embedding into any raylib project.
 3D Tiles is a powerful format for streaming and rendering large 3D geospatial datasets, but it comes with significant
 complexity and overhead.
 
-1. It designed for walkthroughs resolution and visual fidelity, not for flight similations.
+1. It designed for walkthroughs resolution and visual fidelity, not for flight simulations as Raytiles mainly targets.
 2. Google 3D tiles require a token and there is limited free usage, which can be a barrier for indie developers and
    small projects.
 3. Google does not allow caching 3D Tiles data, which means that every time you want to render a location, you would
@@ -60,7 +61,7 @@ Actually, this project started with the intention to use 3D Tiles, and there is 
 in the `legacy/` directory, but it was eventually scrapped in favor of a simpler, lightweight approach that better fits
 raytiles needs.
 
-Example of the 3D Tiles renderer in action using Google 3D Tiles:
+Example of the 3D Tiles renderer in action using Google 3D Tiles (width debug data and grid):
 
 ![3D Tiles Renderer](res/example-3dtiles.png)
 
@@ -87,7 +88,7 @@ include(FetchContent)
 FetchContent_Declare(
         raytiles
         GIT_REPOSITORY https://github.com/ziv/raytiles.git
-        GIT_TAG v0.1.0
+        GIT_TAG v0.7.0
         GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(raytiles)
@@ -135,24 +136,45 @@ See `sandbox/main.cpp` for a full runnable example with input handling.
 ## Providers
 
 **raytiles** is designed to be provider-agnostic, allowing you to use any tile server that follows the XYZ tiling
-scheme. By default, it comes with a built-in providers, Esri for texture and Terrarium for heightmap, but you can easily
-configure any other provider using the `raytiles::pool_config ` struct.
+scheme (slippy maps format).
 
-The default providers are configured as follows:
+By default, it comes with a built-in providers, **Esri** for texture and **Mapzen** for heightmap (Terrarium format) and
+normals, but you can easily configure any other provider using the `raytiles::pool_config ` struct.
+
+#### Heightmap and Normals Provider
+
+It is not recommended to replace the elevation provider since the height calculation strategy is tightly coupled with
+the encoding of the heightmap, but you can replace the texture provider without any issue.
+
+Reference to Mapzen height
+calculations [can be found here](https://github.com/tilezen/joerd/blob/master/docs/formats.md).
+
+#### Texture Provider
+
+The default texture providers is configured as follows:
 
 ```c++
 raytiles::pool_config pool_conf;
 
-pool_conf.texture_host          = "https://server.arcgisonline.com";
-pool_conf.texture_url_path      = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
-
-pool_conf.heightmap_host        = "https://s3.amazonaws.com";
-pool_conf.heightmap_url_path    = "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png";
+pool_conf.texture_host     = "https://server.arcgisonline.com";
+pool_conf.texture_url_path = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
 ```
 
-Replacing the heightmap provider require to choose the right height calculation strategy. [TBC]
+Example of using **Mapbox** as texture provider (requires an access token):
+
+```c++
+raytiles::pool_config pool_conf;
+
+pool_conf.texture_host     = "https://api.mapbox.com";
+pool_conf.texture_url_path = "/v4/mapbox.satellite/{zoom}/{x}/{y}.pngraw?access_token=YOUR_MAPBOX_ACCESS_TOKEN";
+
+```
 
 ## How It Works
+
+Raytiles is a conductor that orchestrates files read/download, GPU uploads, and rendering. The rest of the magic is
+happened in the shaders, where we do GPU-side displacement and normal mapping to create the illusion of a detailed
+terrain without the overhead of complex geometry.
 
 ![how it works](res/how-it-works0.png)
 
