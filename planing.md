@@ -47,6 +47,8 @@ From now on, all calculations will be based on $\phi=32^\circ$ but the real valu
 
 From commercial aircraft, at 43K feets (~13Km) the distance to the horizon is approximately 250 miles (~400km).
 
+![horizon](res/horizon.png)
+
 From Pythagorean theorem, we can calculate the distance to the horizon `d` based on the height of the observer `h` and
 the radius of the Earth `R` (let say Earth is a perfect sphere):
 
@@ -92,11 +94,10 @@ area, but it will increase the number of tiles we need to load and render.
 
 ## Tiles Selection
 
-Iterating from -6 to +6 in both X and Z directions, we will cover an area of 13x13 tiles around the camera position at
-zoom level 9, which is sufficient to cover the horizon distance of 400km.
+Iterating from -10 to +10 in both X and Z directions, we will cover an area of 21x21 tiles around the camera position at
+zoom level 11, which is sufficient to cover half of the horizon distance of 400km.
 
-$$(2*R+1)*TileWidth_{meters} \approx 13*66km = 858km$$
-$$\frac{858km}{2} > d$$
+$$(2*R+1)*TileWidth_{meters} \approx 21*16.5km = 346.5km$$
 
 While the iteration is based on the lowest zoom level, the actual rendering distance is based on the camera height and
 the distance to the tile.
