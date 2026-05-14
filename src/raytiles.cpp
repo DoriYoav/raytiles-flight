@@ -427,15 +427,6 @@ namespace raytiles {
                 continue;
             }
 
-            // ensure the heightmap image is in a format get_height_from_image() can
-            // decode. raylib normally gives us R8G8B8 / R8G8B8A8, but a future raylib
-            // upgrade or a custom-cached image could come in something else; convert
-            // once here so ground_height() is never silently wrong.
-            if (height_img->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8 && height_img->format != PIXELFORMAT_UNCOMPRESSED_R8G8B8A8) {
-                TraceLog(LOG_WARNING, "heightmap tile %d/%d/%d arrived as format %d - converting to R8G8B8", key.zoom, key.x, key.z, height_img->format);
-                ImageFormat(&height_img.get(), PIXELFORMAT_UNCOMPRESSED_R8G8B8);
-            }
-
             // upload to GPU and move into rendering_tiles. the heightmap CPU image is
             // kept in the loaded_tile for ground_height() queries (recast, collision).
             raii::texture texture_tex = raii::load_texture_from_image(*tex_img);
