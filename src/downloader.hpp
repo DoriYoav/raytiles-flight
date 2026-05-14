@@ -29,22 +29,17 @@
 #endif
 
 namespace raytiles {
-    // todo we don't need replace all
-    // todo performance
-    static void replace_all(std::string &str, const std::string &from, const std::string &to) {
+    static void replace(std::string &str, const std::string &from, const std::string &to) {
         if (from.empty()) return;
-        size_t start_pos = 0;
-
-        while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
-            str.replace(start_pos, from.length(), to);
-            start_pos += to.length();
-        }
+        const size_t pos = str.find(from);
+        if (pos == std::string::npos) return;
+        str.replace(pos, from.length(), to);
     }
 
     static std::string get_url(std::string url, const int zoom, const int x, const int y) {
-        replace_all(url, "{zoom}", std::to_string(zoom));
-        replace_all(url, "{x}", std::to_string(x));
-        replace_all(url, "{y}", std::to_string(y));
+        replace(url, "{zoom}", std::to_string(zoom));
+        replace(url, "{x}", std::to_string(x));
+        replace(url, "{y}", std::to_string(y));
         return url;
     }
 
