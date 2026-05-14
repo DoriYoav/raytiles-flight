@@ -51,6 +51,9 @@ namespace raytiles::raii {
         [[nodiscard]] const T &get() const noexcept { return value_; }
         [[nodiscard]] T &get() noexcept { return value_; }
 
+        /// Return true if holding a resource even if the resource
+        /// itself can be not valid (e.g. a LoadImage that failed
+        /// but return an empty image)
         [[nodiscard]] bool valid() const noexcept { return owned_; }
         explicit operator bool() const noexcept { return owned_; }
 
