@@ -31,14 +31,6 @@ namespace raytiles {
         : conf(conf),
           displacement_shader(raii::load_shader_from_memory(shaders::vertex_shader, shaders::fragment_shader)),
           tile_downloader(std::move(pool_conf)) {
-        // const std::unordered_map<int, float> thresholds = {
-        //     {11, conf.ths[0]},
-        //     {12, conf.ths[1]},
-        //     {13, conf.ths[2]},
-        //     {14, conf.ths[3]},
-        //     {15, conf.ths[4]},
-        // };
-
         int res = 4;
 
         for (int zoom = conf.base_zoom; zoom <= conf.max_zoom; ++zoom) {
@@ -56,8 +48,8 @@ namespace raytiles {
         }
 
         // one Material to rule them all, one material to bind them
-        material = LoadMaterialDefault();
-        material.shader = *displacement_shader;
+        material = raii::material{LoadMaterialDefault()};
+        material->shader = *displacement_shader;
 
         // update defaults
         fog_start = conf.fog_start;
@@ -133,11 +125,13 @@ namespace raytiles {
 
             if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, f)) continue;
 
-            material.maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
-            material.maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
-            material.maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
+            // material->maps[0]
+            // const auto m = material();
+            material->maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
+            material->maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
+            material->maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
 
-            DrawMesh(*t.mesh, material, MatrixTranslate(tile.tx, 0.0f, tile.tz));
+            DrawMesh(*t.mesh, *material, MatrixTranslate(tile.tx, 0.0f, tile.tz));
             ++rendered;
         }
     }
@@ -509,7 +503,7 @@ namespace raytiles {
     bool manager::is_tile_out_of_area(const TileKey &key) const {
         const auto &t = tiles.at(key.zoom);
         const MetersSq distance_sq = utils::distance_sq_to_tile(last_position, key, t.size);
-        const MetersSq far_sq = conf.fog_end * conf.fog_end;
+        const MetersSq far_sq = static_cast<double>(conf.fog_end) * static_cast<double>(conf.fog_end);
 
         if (distance_sq > far_sq) {
             return true;
