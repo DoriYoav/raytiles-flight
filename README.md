@@ -60,6 +60,8 @@ Actually, this project started with the intention to use 3D Tiles, and there is 
 in the `legacy/` directory, but it was eventually scrapped in favor of a simpler, lightweight approach that better fits
 raytiles needs.
 
+Example of the 3D Tiles renderer in action using Google 3D Tiles:
+
 ![3D Tiles Renderer](res/example-3dtiles.png)
 
 ## Raytiles Examples
