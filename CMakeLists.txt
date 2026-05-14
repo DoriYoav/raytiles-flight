@@ -16,6 +16,9 @@ if (NOT TARGET raylib)
             GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(raylib)
+    if (TARGET raylib)
+        set_target_properties(raylib PROPERTIES SYSTEM TRUE)
+    endif ()
 endif ()
 
 add_library(${PROJECT_NAME}
@@ -31,6 +34,12 @@ add_library(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC raylib)
+
+if (MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 
 if (EMSCRIPTEN)
     target_compile_options(${PROJECT_NAME} PUBLIC "-pthread" "-fexceptions")
