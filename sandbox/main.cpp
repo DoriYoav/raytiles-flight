@@ -2,6 +2,7 @@
 #include <string>
 
 #include "include/raytiles.h"
+#include "fly.h"
 #include <rlgl.h>
 #include <raymath.h>
 #ifdef __EMSCRIPTEN__
@@ -73,11 +74,16 @@ int main() {
     camera.fovy = 60.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
+    FreeCamera f(camera);
+
     streamer.set_fog_color(SKYBLUE);
     streamer.set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
 
     auto update = [&] {
+        const auto dt = GetFrameTime();
+        f.update(camera, dt);
+
         streamer.set_sun_direction(Vector3{0.1f, sun, 0.0f});
         streamer.update(camera);
 
@@ -92,24 +98,9 @@ int main() {
         streamer.debug(camera);
         EndDrawing();
 
-        const auto dt = GetFrameTime();
-        const auto last_pos = camera.position;
-
-        if (IsKeyDown(KEY_W)) camera.position.z -= 1000.0f * dt;
-        if (IsKeyDown(KEY_S)) camera.position.z += 1000.0f * dt;
-        if (IsKeyDown(KEY_A)) camera.position.x -= 1000.0f * dt;
-        if (IsKeyDown(KEY_D)) camera.position.x += 1000.0f * dt;
-        if (IsKeyDown(KEY_DOWN)) camera.position.y -= 1000.0f * dt;
-        if (IsKeyDown(KEY_UP)) camera.position.y += 1000.0f * dt;
-
         if (IsKeyDown(KEY_LEFT_BRACKET)) sun -= dt * 0.5f;
         if (IsKeyDown(KEY_RIGHT_BRACKET)) sun += dt * 0.5f;
         sun = std::clamp(sun, -1.0f, 1.0f);
-
-        // uncomment to allow moving around without changing the view direction (for testing only)
-        // const auto move = camera.position - last_pos;
-        // camera.target += move;
-
 
         // sync every 10 seconds
         if (GetTime() - last_sync_time > 10.0) {
