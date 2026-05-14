@@ -14,6 +14,7 @@
 #include <stop_token>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <thread>
 #include <vector>
 
@@ -77,6 +78,7 @@ namespace raytiles {
         std::vector<std::jthread> workers;
         std::queue<ImageJob> image_queue;
         std::map<std::string, std::shared_future<std::string> > in_flight_bytes;
+        std::unordered_set<std::string> cancelled_jobs;
         std::mutex mtx;
         // condition_variable_any (not std::condition_variable!) is required so we can
         // use the 3-arg wait(lock, stop_token, predicate) overload that cooperates
@@ -113,11 +115,27 @@ namespace raytiles {
 
             while (true) {
                 ImageJob img_job;
+                bool is_cancelled = false;
                 {
                     std::unique_lock lock(mtx);
                     if (!cv.wait(lock, st, [this] { return !image_queue.empty(); })) return;
                     img_job = std::move(image_queue.front());
                     image_queue.pop();
+
+                    if (cancelled_jobs.contains(img_job.path)) {
+                        cancelled_jobs.erase(img_job.path);
+                        in_flight_bytes.erase(img_job.path);
+                        is_cancelled = true;
+                    }
+                }
+
+                if (is_cancelled) {
+                    try {
+                        throw std::runtime_error("tile download cancelled");
+                    } catch (...) {
+                        img_job.promise.set_exception(std::current_exception());
+                    }
+                    continue;
                 }
 
                 try {
@@ -229,6 +247,25 @@ namespace raytiles {
             workers.clear();
         }
 
+        void cancel_load(const std::string &path) {
+            std::lock_guard lock(mtx);
+            if (in_flight_bytes.contains(path)) {
+                cancelled_jobs.insert(path);
+            }
+        }
+
+        void cancel_texture(int zoom, int x, int y) {
+            cancel_load(std::vformat(config.texture_cache_path, std::make_format_args(zoom, x, y)));
+        }
+
+        void cancel_heightmap(int zoom, int x, int y) {
+            cancel_load(std::vformat(config.heightmap_cache_path, std::make_format_args(zoom, x, y)));
+        }
+
+        void cancel_normals(int zoom, int x, int y) {
+            cancel_load(std::vformat(config.normals_cache_path, std::make_format_args(zoom, x, y)));
+        }
+
         // returns a shared_future that resolves with the raw file bytes after download
         // (or after reading from cache). decoding into an Image is the caller's
         // responsibility and must be done on the main thread.
@@ -240,6 +277,10 @@ namespace raytiles {
         // duplicate download is queued).
         std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url, const request_type type = TEXTURE) {
             std::lock_guard lock(mtx);
+
+            // make sure it is not canceled
+            cancelled_jobs.erase(path);
+
             if (const auto it = in_flight_bytes.find(path); it != in_flight_bytes.end()) return it->second;
 
             std::promise<std::string> promise;
