@@ -210,7 +210,7 @@ The default configuration optimizes for relatively low memory usage, with a maxi
 time. Note that any change in configuration may affect the memory usage, so it's important to understand how the memory
 is calculated.
 
-- Tile size: $256*256=65,536$ pixels
+- Tile size: $256 \times 256=65,536$ pixels
 - RGBA texture: $65,536 \text{ pixels} \times 4 \text{ channels} = 262,144$ bytes (256 KB) per tile (uncompressed)
 
 VRAM:
@@ -220,7 +220,8 @@ VRAM:
 - Normal map texture $\textbf{256 KB}$
 - VRAM per tile (uncompressed with mipmap): $341 + 256 + 256 = \textbf{853 KB}$
 
-For 600 tiles, the total memory usage would be approximately:
+We also hold a copy of the heightmap in RAM for fast altitude queries, which adds 256 KB per tile. For 600 tiles, the
+total memory usage would be approximately:
 
 - VRAM $853 \text{ KB} \times 600 = 511,800 \text{ KB} \approx \textbf{500 MB}$
 - RAM $256 \text{ KB} \times 600 = 153,600 \text{ KB} = \textbf{150 MB}$
