@@ -5,7 +5,8 @@
 **Raytiles** is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the real
 world in real time, it lets you visualize any location on Earth directly inside your raylib applications.
 
-Built for indie developers and professionals alike, Raytiles is a perfect fit for UAV simulations, flight-planning software,
+Built for indie developers and professionals alike, Raytiles is a perfect fit for UAV simulations, flight-planning
+software,
 lightweight GIS analysis, presentations, digital sand tables, and any other geospatial
 visualization ([check out the examples below!](#raytiles-examples)).
 
@@ -14,6 +15,9 @@ games, as well as for topographical analysis in GIS workflows.
 
 Originally developed to power a flight simulator, Raytiles was extracted into a lightweight, standalone library so it
 can be embedded seamlessly into any raylib project.
+
+🙋 Have a question or want to contribute⁉️ Use the [GitHub Discussions](https://github.com/ziv/raytiles/discussions) or
+open an issue!
 
 ![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
 ![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
@@ -47,7 +51,8 @@ complexity and overhead.
 
 1. It is designed for walk-through resolution and visual fidelity, not for flight simulation, which is Raytiles' primary
    target.
-2. Google 3D Tiles require an access token and offer only limited free usage, which can be a barrier for indie developers
+2. Google 3D Tiles require an access token and offer only limited free usage, which can be a barrier for indie
+   developers
    and small projects.
 3. Google does not allow caching 3D Tiles data, so every time you want to render a location you have to re-fetch from
    Google's servers, leading to latency and increased bandwidth usage.
@@ -56,7 +61,8 @@ complexity and overhead.
 5. Cesium 3D Tiles is even more complex: unlike Google, it does not provide ready-made models, only mesh data. The rest
    of the pipeline is essentially what Raytiles already does.
 
-This project actually started out using 3D Tiles, and a 3D Tiles renderer implementation lives in the `legacy/` directory,
+This project actually started out using 3D Tiles, and a 3D Tiles renderer implementation lives in the `legacy/`
+directory,
 but it was eventually dropped in favor of a simpler, lightweight approach better suited to Raytiles' needs.
 
 Example of the 3D Tiles renderer in action using Google 3D Tiles (with debug data and grid):
