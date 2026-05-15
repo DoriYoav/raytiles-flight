@@ -133,6 +133,29 @@ int main() {
 
 See `sandbox/main.cpp` for a full runnable example with input handling.
 
+## Anchors
+
+**Raytiles** uses an anchor-based system to determine which part of the world to stream and render. An anchor is a point
+in the world that serves as a reference for the streaming and rendering process. This point will be your raylib's
+`X=0,Y=0,Z=0` position.
+
+To define an anchor, you have to find the corresponding tile coordinates (x, y, zoom) for the location you want to
+stream.
+
+You can use the following tools to find the tile coordinates for a specific location:
+
+- https://labs.mapbox.com/what-the-tile/
+- https://tools.geofabrik.de/calc/#type=geofabrik_standard&grid=1
+
+Find the tile in zoom 9 that closest to the area of interest and put those values in the configuration:
+
+```c++
+raytiles::config conf;
+
+conf.anchor_x_tile = 123;
+conf.anchor_y_tile = 456;
+```
+
 ## Providers
 
 **raytiles** is designed to be provider-agnostic, allowing you to use any tile server that follows the XYZ tiling
