@@ -202,6 +202,90 @@ namespace raytiles {
     // downloader.hpp. defined in src/downloader.hpp.
     class pool;
 
+    class renderer {
+    public:
+        explicit renderer(rendering_config &conf);
+
+        int draw(const Vector3 &position, const DrawView &draw_view);
+
+        /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc.).
+        /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
+        void debug(const Camera3D &camera, const DebugView &draw_view) const;
+
+        /// Draws 3D debug overlays (tile bounds, LOD seams). Call inside the same
+        /// `BeginMode3D` / `EndMode3D` block as `draw`.
+        void debug_3d(const DrawView &draw_view) const;
+
+        /// Sets the ambient light color sent to the displacement shader. Use this
+        /// to drive day / night / weather lighting changes.
+        void set_ambient_light(Color color);
+
+        /// Sets the ambient light color sent to the displacement shader. Use this
+        /// to drive day / night / weather lighting changes.
+        void set_ambient_light(Vector4 color);
+
+        /// Sets the ambient light color sent to the displacement shader. Use this
+        /// to drive day / night / weather lighting changes.
+        void set_ambient_light(float r, float g, float b, float a);
+
+        /// Sets the fog color for distance attenuation. Match this to your sky
+        /// color for a seamless horizon.
+        void set_fog_color(Color color);
+
+        /// Sets the fog color for distance attenuation. Match this to your sky
+        /// color for a seamless horizon.
+        void set_fog_color(Vector4 color);
+
+        /// Sets the fog color for distance attenuation. Match this to your sky
+        /// color for a seamless horizon.
+        void set_fog_color(float r, float g, float b, float a);
+
+        /// Sets the fog start distance — the distance from the camera at which
+        /// colors begin to blend with the fog.
+        void set_fog_start(float distance);
+
+        /// Sets the fog end distance — the distance from the camera at which
+        /// colors are fully blended with the fog color.
+        void set_fog_end(float distance);
+
+        /// Sets the heightmap scale factor, which exaggerates or flattens the
+        /// terrain relief (drama factor).
+        void set_height_scale(float scale);
+
+        /// Sets the normals scale factor to increase or reduce lighting contrast.
+        void set_normals_scale(float scale);
+
+        /// Sets the sun direction vector used by the displacement shader's
+        /// lighting calculations.
+        void set_sun_direction(Vector3 direction);
+
+        /// Sets the sun lighting intensity, which controls the contrast between
+        /// lit and shaded areas.
+        void set_sun_scale(float scale);
+
+    private:
+        void update_shader_uniforms();
+
+        rendering_config &rendering;
+
+        raii::shader displacement_shader;
+        raii::material material{};
+
+        // shaders slots locations
+        int cam_pos_loc = -1;
+        int ambient_loc = -1;
+        int fog_color_loc = -1;
+        int tex_albedo_loc = -1;
+        int tex_height_loc = -1;
+        int tex_normal_loc = -1;
+        int sun_dir_loc = -1;
+        int sun_scale_loc = -1;
+        int height_scale_loc = -1;
+        int normal_scale_loc = -1;
+        int fog_start_loc = -1;
+        int fog_end_loc = -1;
+    };
+
     /// Per-frame driver that maintains the working set of tiles around a camera
     /// and renders them. One streamer manages one world; create more if you need
     /// independent worlds.
@@ -243,8 +327,6 @@ namespace raytiles {
 
         streamer(streamer &&) noexcept;
 
-        streamer &operator=(streamer &&) noexcept;
-
         /// Updates the desired tile set based on the camera and promotes any
         /// finished downloads into renderable GPU resources. Cheap to call every
         /// frame; internally rate-limited by `streaming_config::upload_budget_sec`
@@ -255,52 +337,17 @@ namespace raytiles {
         /// `BeginMode3D` / `EndMode3D` with the same camera passed to `update`.
         void draw(const Camera3D &camera);
 
-        /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc).
+        /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc.).
         /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
-        void debug(const Camera3D &camera) const;
+        void debug(const Camera3D &camera);
 
         /// Draws 3D debug overlays (tile bounds, LOD seams). Call inside the same
         /// `BeginMode3D` / `EndMode3D` block as `draw`.
-        void debug_3d() const;
+        void debug_3d();
 
-        /// Sets the ambient light color sent to the displacement shader. Use this
-        /// to drive day / night / weather lighting changes.
-        void set_ambient_light(Color color);
-
-        void set_ambient_light(Vector4 color);
-
-        void set_ambient_light(float r, float g, float b, float a);
-
-        /// Sets the fog color for distance attenuation. Match this to your sky
-        /// color for a seamless horizon.
-        void set_fog_color(Color color);
-
-        void set_fog_color(Vector4 color);
-
-        void set_fog_color(float r, float g, float b, float a);
-
-        /// Sets the fog start distance — the distance from the camera at which
-        /// colors begin to blend with the fog.
-        void set_fog_start(float distance);
-
-        /// Sets the fog end distance — the distance from the camera at which
-        /// colors are fully blended with the fog color.
-        void set_fog_end(float distance);
-
-        /// Sets the heightmap scale factor, which exaggerates or flattens the
-        /// terrain relief (drama factor).
-        void set_height_scale(float scale);
-
-        /// Sets the normals scale factor to increase or reduce lighting contrast.
-        void set_normals_scale(float scale);
-
-        /// Sets the sun direction vector used by the displacement shader's
-        /// lighting calculations.
-        void set_sun_direction(Vector3 direction);
-
-        /// Sets the sun lighting intensity, which controls the contrast between
-        /// lit and shaded areas.
-        void set_sun_scale(float scale);
+        /// Returns the underlying renderer instance for direct access
+        /// to shader parameters and debug methods.
+        renderer &get_renderer();
 
         /// Returns the terrain altitude (Y world-coordinate) under `position`,
         /// sampled from the heightmap pixel at the equivalent UV.
@@ -312,7 +359,7 @@ namespace raytiles {
         [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
     private:
-        void build_required(int zoom, int tx, int tz, float render_radius_sq);
+        void build_required(Zoom zoom, int tx, int tz, float render_radius_sq);
 
         void process_loaded_tiles();
 
@@ -320,49 +367,42 @@ namespace raytiles {
 
         void remove_unused_tiles();
 
-        void update_shader_uniforms();
-
         loading_tile spawn(const tile_key &tile) const;
 
-        [[nodiscard]] MetersSq horizon() const;
+        [[nodiscard]] MetersSq calculate_horizon() const;
 
         [[nodiscard]] bool is_tile_covered(const tile_key &key) const;
 
         [[nodiscard]] bool is_tile_out_of_area(const tile_key &key) const;
 
+        // configuration
         world_config world;
         streaming_config streaming;
         rendering_config rendering;
-        raii::shader displacement_shader;
+
+        // exposed in the public header (part of the API)
+        renderer tile_renderer;
         // held by unique_ptr so the public header can forward-declare `pool`
         // and keep httplib out of every consumer's translation unit.
         std::unique_ptr<pool> tile_downloader;
 
+        // internal cache
         int rendered = 0;
+        float width = 0.0f;
+        float height = 0.0f;
 
-        int cam_pos_loc = -1;
-        int ambient_loc = -1;
-        int fog_color_loc = -1;
-        int tex_albedo_loc = -1;
-        int tex_height_loc = -1;
-        int tex_normal_loc = -1;
-        int sun_dir_loc = -1;
-        int sun_scale_loc = -1;
-        int height_scale_loc = -1;
-        int normal_scale_loc = -1;
-        int fog_start_loc = -1;
-        int fog_end_loc = -1;
-
-        raii::material material{};
+        // update every frame
         Vector3 last_position = {-9999.9f, -9999.9f, -9999.9f};
         Frustum last_frustum{};
 
+        // desired_keys is updated under condition
+        // the maps auto built/evicted every frame
         std::unordered_set<tile_key> desired_keys;
         std::unordered_map<tile_key, loading_tile> loading_tiles;
         std::unordered_map<tile_key, loaded_tile> rendering_tiles;
 
         // metadata about tiles by their zoom
-        std::unordered_map<int, tile_value> tiles;
+        std::unordered_map<Zoom, tile_value> tiles;
     };
 } // namespace raytiles
 

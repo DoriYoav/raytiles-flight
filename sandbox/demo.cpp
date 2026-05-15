@@ -16,7 +16,7 @@ int main() {
     world.anchor_z_tile = 198;
 
     raytiles::streamer streamer(world, streaming, rendering, pool_conf);
-    streamer.set_normals_scale(5.0f);
+    streamer.get_renderer().set_normals_scale(5.0f);
 
     Camera3D camera;
     camera.position = Vector3{3000.0f, 5000.0f, 3000.0f};
@@ -26,8 +26,8 @@ int main() {
     camera.projection = CAMERA_PERSPECTIVE;
 
     FreeCamera f(camera);
-    streamer.set_fog_color(SKYBLUE);
-    streamer.set_ambient_light(Color{200, 200, 200, 255});
+    streamer.get_renderer().set_fog_color(SKYBLUE);
+    streamer.get_renderer().set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
 
 
@@ -37,7 +37,7 @@ int main() {
 
         // UpdateCamera(&camera, CAMERA_ORBITAL);
 
-        streamer.set_sun_direction(Vector3{0.1f, sun, 0.0f});
+        streamer.get_renderer().set_sun_direction(Vector3{0.1f, sun, 0.0f});
         streamer.update(camera);
 
         BeginDrawing();
