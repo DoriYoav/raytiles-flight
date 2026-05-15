@@ -261,7 +261,7 @@ namespace raytiles {
 
         /// Draws 3D debug overlays (tile bounds, LOD seams). Call inside the same
         /// `BeginMode3D` / `EndMode3D` block as `draw`.
-        void debug_3d(const Camera3D &camera) const;
+        void debug_3d() const;
 
         /// Sets the ambient light color sent to the displacement shader. Use this
         /// to drive day / night / weather lighting changes.

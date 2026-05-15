@@ -35,7 +35,7 @@ int main() {
         const auto dt = GetFrameTime();
         f.update(camera, dt);
 
-        UpdateCamera(&camera, CAMERA_ORBITAL);
+        // UpdateCamera(&camera, CAMERA_ORBITAL);
 
         streamer.set_sun_direction(Vector3{0.1f, sun, 0.0f});
         streamer.update(camera);
@@ -46,7 +46,7 @@ int main() {
         BeginMode3D(camera);
         // draw the world around the camera
         streamer.draw(camera);
-        streamer.debug_3d(camera);
+        streamer.debug_3d();
         EndMode3D();
         streamer.debug(camera);
         EndDrawing();

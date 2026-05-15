@@ -174,22 +174,10 @@ namespace raytiles {
         }
     }
 
-    void streamer::debug_3d(const Camera3D &camera) const {
-        // see streamer::draw
-        const float fwd_x = camera.target.x - camera.position.x;
-        const float fwd_z = camera.target.z - camera.position.z;
-        const float fwd_len = std::sqrt(fwd_x * fwd_x + fwd_z * fwd_z);
-        const bool cull_enabled = fwd_len > 0.0001f;
-        const float fwd_nx = cull_enabled ? fwd_x / fwd_len : 0.0f;
-        const float fwd_nz = cull_enabled ? fwd_z / fwd_len : 0.0f;
-
+    void streamer::debug_3d() const {
         for (const auto &[key, tile]: rendering_tiles) {
             const auto &t = tiles.at(key.zoom);
-            if (cull_enabled) {
-                const float dx = tile.tx - camera.position.x;
-                const float dz = tile.tz - camera.position.z;
-                if (const float along_forward = dx * fwd_nx + dz * fwd_nz; along_forward < -t.size) continue;
-            }
+            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, last_frustum)) continue;
             DrawCubeWires({tile.tx, 0.0f, tile.tz}, t.size, 200.0f, t.size, GREEN);
         }
     }

@@ -151,9 +151,9 @@ void RaytilesStreamerDebug(RaytilesStreamer *streamer, const Camera3D camera) {
     streamer->impl.debug(camera);
 }
 
-void RaytilesStreamerDebug3D(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerDebug3D(RaytilesStreamer *streamer) {
     if (!streamer) return;
-    streamer->impl.debug_3d(camera);
+    streamer->impl.debug_3d();
 }
 
 void RaytilesStreamerSetAmbientLight(RaytilesStreamer *streamer, const Color color) {

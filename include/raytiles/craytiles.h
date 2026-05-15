@@ -153,7 +153,7 @@ void RaytilesStreamerDebug(RaytilesStreamer *streamer, Camera3D camera);
 
 /// Draws 3D debug overlays (tile bounds). Call inside the same
 /// `BeginMode3D` / `EndMode3D` block as `RaytilesStreamerDraw`.
-void RaytilesStreamerDebug3D(RaytilesStreamer *streamer, Camera3D camera);
+void RaytilesStreamerDebug3D(RaytilesStreamer *streamer);
 
 /// Sets the ambient light color used by the displacement shader. Use this to
 /// drive day / night / weather lighting changes.
