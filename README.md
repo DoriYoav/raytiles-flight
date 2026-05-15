@@ -45,7 +45,7 @@ can be embedded seamlessly into any raylib project.
 3D Tiles is a powerful format for streaming and rendering large 3D geospatial datasets, but it comes with significant
 complexity and overhead.
 
-1. It is designed for walk-through resolution and visual fidelity, not for flight simulation — which is Raytiles' primary
+1. It is designed for walk-through resolution and visual fidelity, not for flight simulation, which is Raytiles' primary
    target.
 2. Google 3D Tiles require an access token and offer only limited free usage, which can be a barrier for indie developers
    and small projects.
@@ -53,7 +53,7 @@ complexity and overhead.
    Google's servers, leading to latency and increased bandwidth usage.
 4. The 3D Tiles glTF format stores coordinates in double precision, which does not fit raylib's float-based rendering
    pipeline. The data must be decoded on the CPU and re-uploaded to the GPU every frame, hurting performance.
-5. Cesium 3D Tiles is even more complex: unlike Google, it does not provide ready-made models — only mesh data. The rest
+5. Cesium 3D Tiles is even more complex: unlike Google, it does not provide ready-made models, only mesh data. The rest
    of the pipeline is essentially what Raytiles already does.
 
 This project actually started out using 3D Tiles, and a 3D Tiles renderer implementation lives in the `legacy/` directory,
@@ -160,8 +160,8 @@ conf.anchor_z_tile = 456;
 **raytiles** is designed to be provider-agnostic, allowing you to use any tile server that follows the XYZ tiling
 scheme (slippy-map format).
 
-It ships with built-in providers — **Esri** for textures and **Mapzen** for heightmaps (Terrarium format) and
-normals — but you can plug in any other provider via the `raytiles::pool_config` struct.
+It ships with built-in provider, **Esri** for textures and **Mapzen** for heightmaps (Terrarium format) and
+normals, but you can plug in any other provider via the `raytiles::pool_config` struct.
 
 #### Heightmap and Normals Provider
 
