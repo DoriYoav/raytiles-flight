@@ -12,12 +12,12 @@
 #include "../include/raytiles/raytiles.h"
 
 namespace {
-    inline std::string to_string_or_empty(const char *s) {
+    std::string to_string_or_empty(const char *s) {
         return s ? std::string(s) : std::string();
     }
 }
 
-struct RaytilesStreamer {
+struct [[maybe_unused]] RaytilesStreamer {
     raytiles::streamer impl;
 
     RaytilesStreamer(const raytiles::world_config &w,
@@ -30,9 +30,9 @@ struct RaytilesStreamer {
 
 extern "C" {
 RaytilesConfig RaytilesConfigDefault(void) {
-    const raytiles::world_config w{};
+    constexpr raytiles::world_config w{};
     const raytiles::streaming_config s{};
-    const raytiles::rendering_config r{};
+    constexpr raytiles::rendering_config r{};
     RaytilesConfig out{};
     out.base_zoom = w.base_zoom;
     out.max_zoom = w.max_zoom;
@@ -44,7 +44,7 @@ RaytilesConfig RaytilesConfigDefault(void) {
     out.use_mipmap = w.use_mipmap;
     out.use_logger = w.use_logger;
     out.rendering_radius = s.rendering_radius;
-    out.update_distance = s.update_distance_sq;
+    out.update_distance = static_cast<float>(s.update_distance_sq);
     out.update_height = s.update_height;
     out.upload_budget_sec = s.upload_budget_sec;
     out.max_uploads_per_frame = s.max_uploads_per_frame;
@@ -156,21 +156,21 @@ RaytilesStreamer *RaytilesStreamerCreate(const RaytilesConfig *conf,
     }
 }
 
-void RaytilesStreamerDestroy(RaytilesStreamer *streamer) {
+void RaytilesStreamerDestroy(const RaytilesStreamer *streamer) {
     delete streamer;
 }
 
-void RaytilesStreamerUpdate(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerUpdate(RaytilesStreamer *streamer, const Camera3D &camera) {
     if (!streamer) return;
     streamer->impl.update(camera);
 }
 
-void RaytilesStreamerDraw(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerDraw(RaytilesStreamer *streamer, const Camera3D &camera) {
     if (!streamer) return;
     streamer->impl.draw(camera);
 }
 
-void RaytilesStreamerDebug(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerDebug(RaytilesStreamer *streamer, const Camera3D &camera) {
     if (!streamer) return;
     streamer->impl.debug(camera);
 }

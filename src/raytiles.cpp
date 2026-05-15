@@ -57,7 +57,7 @@ namespace raytiles {
                 // don't start with missing items
                 throw std::runtime_error(std::format("missing distance threshold for zoom {}", zoom));
             }
-            const float ratio = static_cast<float>(1 << (zoom - world.base_zoom));
+            const auto ratio = static_cast<float>(1 << (zoom - world.base_zoom));
             const auto size = world.base_zoom_tile_size / ratio;
             const auto skirt_size = world.skirt_size * ratio;
             const auto th = streaming.thresholds.at(zoom); // safe (see check at the beginning of loop)
@@ -102,8 +102,9 @@ namespace raytiles {
         last_frustum = utils::extract_frustum(camera,
                                               width,
                                               height,
-                                              rendering.near_plane,
-                                              rendering.far_plane);
+                                              static_cast<float>(rendering.near_plane),
+                                              static_cast<float>(rendering.far_plane)
+        );
     }
 
     void streamer::draw(const Camera3D &camera) {
@@ -111,13 +112,13 @@ namespace raytiles {
     }
 
     void streamer::debug(const Camera3D &camera) {
-        tile_renderer.debug(camera, {last_frustum, rendering_tiles, tiles, desired_keys});
+        renderer::debug(camera, {last_frustum, rendering_tiles, tiles, desired_keys});
         DrawText(TextFormat("loaded=%zu  loading=%zu needed=%zu", rendering_tiles.size(), loading_tiles.size(), desired_keys.size()), 10, 10, 20, WHITE);
         DrawText(TextFormat("rendered=%d", rendered), 10, 40, 20, WHITE);
     }
 
     void streamer::debug_3d() {
-        tile_renderer.debug_3d({last_frustum, rendering_tiles, tiles, desired_keys});
+        renderer::debug_3d({last_frustum, rendering_tiles, tiles, desired_keys});
     }
 
     void streamer::remove_unused_tiles() {
@@ -214,7 +215,7 @@ namespace raytiles {
         // rendering limit radius based on the horizon distance from the current camera height.
         // we use the horizon distance as a limit because tiles beyond that point won't be visible anyway,
         // so no need to even request them.
-        const auto render_radius_sq = calculate_horizon();
+        const auto render_radius_sq = static_cast<float>(calculate_horizon());
 
         // todo set clip base on the horizon
 
@@ -360,8 +361,7 @@ namespace raytiles {
     }
 
     MetersSq streamer::calculate_horizon() const {
-        const auto height = std::max(last_position.y, 1.0f);
-        const auto d = 3.57 * 1000 * height; // the radius of rendering
+        const auto d = 3.57 * 1000 * std::max(last_position.y, 1.0f); // the radius of rendering
         return d * d;
     }
 

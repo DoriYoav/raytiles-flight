@@ -367,7 +367,7 @@ namespace raytiles {
 
         void remove_unused_tiles();
 
-        loading_tile spawn(const tile_key &tile) const;
+        [[nodiscard]] loading_tile spawn(const tile_key &tile) const;
 
         [[nodiscard]] MetersSq calculate_horizon() const;
 

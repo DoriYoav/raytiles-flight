@@ -61,9 +61,7 @@ namespace raytiles {
         SetShaderValue(*displacement_shader, cam_pos_loc, &position, SHADER_UNIFORM_VEC3);
 
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            const auto &t = draw_view.tiles.at(key.zoom);
-
-            if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
                 material->maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
                 material->maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
                 material->maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
@@ -77,19 +75,17 @@ namespace raytiles {
 
     void renderer::debug_3d(const DebugView &draw_view) {
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            const auto &t = draw_view.tiles.at(key.zoom);
-            if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
                 DrawCubeWires({tile.tx, 0.0f, tile.tz}, t.size, 200.0f, t.size, GREEN);
             }
         }
     }
 
     void renderer::debug(const Camera3D &camera, const DebugView &draw_view) {
-        const auto width = GetScreenWidth();
-        const auto height = GetScreenHeight();
+        const auto width = static_cast<float>(GetScreenWidth());
+        const auto height = static_cast<float>(GetScreenHeight());
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            const auto &t = draw_view.tiles.at(key.zoom);
-            if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
                 const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
                 if (x < 0 || x > width || y < 0 || y > height) continue;
 
@@ -116,8 +112,11 @@ namespace raytiles {
     }
 
     void renderer::set_ambient_light(const Color color) {
-        set_ambient_light(static_cast<float>(color.r) / 255.0f, static_cast<float>(color.g) / 255.0f, static_cast<float>(color.b) / 255.0f,
-                          static_cast<float>(color.a) / 255.0f);
+        set_ambient_light(static_cast<float>(color.r) / 255.0f,
+                          static_cast<float>(color.g) / 255.0f,
+                          static_cast<float>(color.b) / 255.0f,
+                          static_cast<float>(color.a) / 255.0f
+        );
     }
 
     void renderer::set_ambient_light(const Vector4 color) {
@@ -133,7 +132,9 @@ namespace raytiles {
     }
 
     void renderer::set_fog_color(const Color color) {
-        set_fog_color(static_cast<float>(color.r) / 255.0f, static_cast<float>(color.g) / 255.0f, static_cast<float>(color.b) / 255.0f,
+        set_fog_color(static_cast<float>(color.r) / 255.0f,
+                      static_cast<float>(color.g) / 255.0f,
+                      static_cast<float>(color.b) / 255.0f,
                       static_cast<float>(color.a) / 255.0f);
     }
 
