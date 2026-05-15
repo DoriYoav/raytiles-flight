@@ -185,17 +185,15 @@ namespace raytiles {
     void streamer::debug(const Camera3D &camera) const {
         const auto width = static_cast<float>(GetScreenWidth());
         const auto height = static_cast<float>(GetScreenHeight());
+
         for (const auto &[key, tile]: rendering_tiles) {
             const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
             if (x < 0 || x > width || y < 0 || y > height) continue;
 
-            if (desired_keys.contains(key)) {
-                DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, GREEN);
-            } else {
-                DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, RED);
-            }
-            // const Color c = key.zoom == 14 ? RED : key.zoom == 15 ? GREEN : WHITE;
-            // DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, GREEN);
+            const auto &t = tiles.at(key.zoom);
+            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, last_frustum)) continue;
+
+            DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, desired_keys.contains(key) ? GREEN : RED);
         }
         DrawText(TextFormat("loaded=%zu  loading=%zu needed=%zu", rendering_tiles.size(), loading_tiles.size(), desired_keys.size()), 10, 10, 20, WHITE);
         DrawText(TextFormat("rendered=%d", rendered), 10, 40, 20, WHITE);
