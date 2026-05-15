@@ -22,12 +22,6 @@ namespace raytiles {
         Plane planes[6];
     };
 
-    struct DrawView {
-        Frustum &frustum;
-        std::unordered_map<tile_key, loaded_tile> &rendering_tiles;
-        std::unordered_map<Zoom, tile_value> &tiles;
-    };
-
     struct DebugView {
         Frustum &frustum;
         std::unordered_map<tile_key, loaded_tile> &rendering_tiles;

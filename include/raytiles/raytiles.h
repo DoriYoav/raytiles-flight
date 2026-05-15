@@ -210,11 +210,11 @@ namespace raytiles {
 
         /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc.).
         /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
-        void debug(const Camera3D &camera, const DebugView &draw_view) const;
+        static void debug(const Camera3D &camera, const DebugView &draw_view);
 
         /// Draws 3D debug overlays (tile bounds, LOD seams). Call inside the same
         /// `BeginMode3D` / `EndMode3D` block as `draw`.
-        void debug_3d(const DrawView &draw_view) const;
+        static void debug_3d(const DebugView &draw_view);
 
         /// Sets the ambient light color sent to the displacement shader. Use this
         /// to drive day / night / weather lighting changes.

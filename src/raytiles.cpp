@@ -117,7 +117,7 @@ namespace raytiles {
     }
 
     void streamer::debug_3d() {
-        tile_renderer.debug_3d({last_frustum, rendering_tiles, tiles});
+        tile_renderer.debug_3d({last_frustum, rendering_tiles, tiles, desired_keys});
     }
 
     void streamer::remove_unused_tiles() {

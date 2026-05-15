@@ -75,7 +75,7 @@ namespace raytiles {
         return rendered;
     }
 
-    void renderer::debug_3d(const DrawView &draw_view) const {
+    void renderer::debug_3d(const DebugView &draw_view) {
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
             const auto &t = draw_view.tiles.at(key.zoom);
             if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
@@ -84,7 +84,7 @@ namespace raytiles {
         }
     }
 
-    void renderer::debug(const Camera3D &camera, const DebugView &draw_view) const {
+    void renderer::debug(const Camera3D &camera, const DebugView &draw_view) {
         const auto width = GetScreenWidth();
         const auto height = GetScreenHeight();
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
