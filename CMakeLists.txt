@@ -96,6 +96,10 @@ if (EMSCRIPTEN)
     set_target_properties(Sandbox PROPERTIES SUFFIX ".html")
 endif ()
 
+# demos creator
+add_executable(demo sandbox/demo.cpp)
+target_link_libraries(demo PRIVATE ${PROJECT_NAME})
+
 # tests
 FetchContent_Declare(
         doctest
