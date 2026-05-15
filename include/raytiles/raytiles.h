@@ -14,28 +14,16 @@
 #include "detail/tile.hpp"
 #include "detail/utils.hpp"
 
-#ifndef RAYTILES_TEXTURE_HOST
-#define RAYTILES_TEXTURE_HOST "https://server.arcgisonline.com"
+#ifndef RAYTILES_TEXTURE_URL
+#define RAYTILES_TEXTURE_URL "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}"
 #endif
 
-#ifndef RAYTILES_TEXTURE_URL_PATH
-#define RAYTILES_TEXTURE_URL_PATH "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}"
+#ifndef RAYTILES_HEIGHTMAP_URL
+#define RAYTILES_HEIGHTMAP_URL "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png"
 #endif
 
-#ifndef RAYTILES_HEIGHTMAP_HOST
-#define RAYTILES_HEIGHTMAP_HOST "https://s3.amazonaws.com"
-#endif
-
-#ifndef RAYTILES_HEIGHTMAP_URL_PATH
-#define RAYTILES_HEIGHTMAP_URL_PATH "/elevation-tiles-prod/terrarium/{zoom}/{x}/{y}.png"
-#endif
-
-#ifndef RAYTILES_NORMALS_HOST
-#define RAYTILES_NORMALS_HOST "https://s3.amazonaws.com"
-#endif
-
-#ifndef RAYTILES_NORMALS_URL_PATH
-#define RAYTILES_NORMALS_URL_PATH "/elevation-tiles-prod/normal/{zoom}/{x}/{y}.png"
+#ifndef RAYTILES_NORMALS_URL
+#define RAYTILES_NORMALS_URL "https://s3.amazonaws.com/elevation-tiles-prod/normal/{zoom}/{x}/{y}.png"
 #endif
 
 
@@ -54,10 +42,10 @@ namespace raytiles {
 
         /// Distance (in meters) at which atmospheric fog starts to fade tiles to
         /// `set_fog_color`'s color.
-        float fog_start = 100000.0f;
+        Meters fog_start = 100000.0f;
 
         /// Distance (in meters) at which fog reaches full cover.
-        float fog_end = 150000.0f;
+        Meters fog_end = 150000.0f;
 
         /// Lowest level-of-detail zoom that will ever be loaded. Tiles outside the
         /// camera's near radius are kept at this zoom to bound the working set.
@@ -112,8 +100,8 @@ namespace raytiles {
 
         /// Near / far clip planes used by the displacement shader for fog and
         /// depth precision tuning. Match these to your camera setup.
-        double near_plane = 1;
-        double far_plane = 400000;
+        MetersD near_plane = 1;
+        MetersD far_plane = 400000;
 
         /// Generate trilinear / anisotropic mipmaps for the albedo texture on
         /// upload. Strongly recommended; avoids shimmering at distance.
@@ -121,7 +109,7 @@ namespace raytiles {
 
         /// Vertical drop (in meters) of the skirt geometry below each tile's edge.
         /// Larger values hide cracks more reliably but cost more fill rate.
-        float skirt_drop = 1000.0f;
+        Meters skirt_drop = 1000.0f;
 
         /// Weather to log from the threads or from the main process
         /// Logging from main thread/process is done via raylib's TraceLog function
@@ -130,7 +118,7 @@ namespace raytiles {
         /// Zoom level distance thresholds (9 to 15)
         /// Optimized for performance and limit the tiles number under 600
         /// Changing base_zoom or max_zoom must be reflected here
-        std::unordered_map<int, float> thresholds = {
+        std::unordered_map<Zoom, Meters> thresholds = {
             {9, 100000.0f},
             {10, 80000.0f},
             {11, 40000.0f},
@@ -145,7 +133,7 @@ namespace raytiles {
         /// Number of background download workers. Downloads are I/O-bound so it's
         /// safe to use more threads than CPU cores; 2 is a reasonable default for
         /// HTTP keep-alive against a single host.
-        int download_threads = 2;
+        int download_threads = 4;
 
         /// Skip TLS certificate verification for tile downloads. Only useful for
         /// local proxies; never enable against a real server.
@@ -164,14 +152,17 @@ namespace raytiles {
         /// URL always constructed from Zoom/X/Z and optional token
         /// Can be replaced with any provider following the XYZ (Slippy map) format
         /// and provide RGB heightmaps.
-        std::string texture_host = RAYTILES_TEXTURE_HOST;
-        std::string texture_url_path = RAYTILES_TEXTURE_URL_PATH;
+        std::string texture_url = RAYTILES_TEXTURE_URL;
+        std::string texture_host{};
+        std::string texture_url_path{};
 
-        std::string heightmap_host = RAYTILES_HEIGHTMAP_HOST;
-        std::string heightmap_url_path = RAYTILES_HEIGHTMAP_URL_PATH;
+        std::string heightmap_url = RAYTILES_HEIGHTMAP_URL;
+        std::string heightmap_host{};
+        std::string heightmap_url_path{};
 
-        std::string normals_host = RAYTILES_NORMALS_HOST;
-        std::string normals_url_path = RAYTILES_NORMALS_URL_PATH;
+        std::string normals_url = RAYTILES_NORMALS_URL;
+        std::string normals_host{};
+        std::string normals_url_path{};
     };
 
     // forward-declared so the public header doesn't drag httplib in via

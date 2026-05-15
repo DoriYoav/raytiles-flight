@@ -44,6 +44,15 @@ namespace raytiles {
         return url;
     }
 
+    static std::pair<std::string, std::string> split_url(const std::string &url) {
+        const size_t search_start = url.find("://") + 3;
+        const size_t path_pos = url.find('/', search_start);
+
+        if (path_pos == std::string::npos) return {url, ""};
+
+        return {url.substr(0, path_pos), url.substr(path_pos)};
+    }
+
     // pool of background workers. each job downloads a tile (or reads it from the
     // on-disk cache) and resolves a future with the raw file bytes. raylib is not
     // thread-safe (image decoders, TextFormat/TextToLower static buffers, internal
@@ -237,6 +246,21 @@ namespace raytiles {
     public:
         explicit pool(pool_config conf)
             : config(std::move(conf)) {
+            // normalize configuration
+            // take the URLs and split them to 2 parts, the host part and path part
+            // todo input validation
+            auto [texture_host, texture_path] = split_url(config.texture_url);
+            config.texture_host = std::move(texture_host);
+            config.texture_url_path = std::move(texture_path);
+
+            auto [heightmap_host, heightmap_path] = split_url(config.heightmap_url);
+            config.heightmap_host = std::move(heightmap_host);
+            config.heightmap_url_path = std::move(heightmap_path);
+
+            auto [normals_host, normals_path] = split_url(config.normals_url);
+            config.normals_host = std::move(normals_host);
+            config.normals_url_path = std::move(normals_path);
+
             workers.reserve(config.download_threads);
             for (int i = 0; i < config.download_threads; ++i) workers.emplace_back([this](const std::stop_token &st) { worker_loop(st); });
         }

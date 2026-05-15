@@ -179,8 +179,7 @@ The default texture providers is configured as follows:
 ```c++
 raytiles::pool_config pool_conf;
 
-pool_conf.texture_host     = "https://server.arcgisonline.com";
-pool_conf.texture_url_path = "/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
+pool_conf.texture_url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}";
 ```
 
 Example of using **Mapbox** as texture provider (requires an access token):
@@ -188,9 +187,7 @@ Example of using **Mapbox** as texture provider (requires an access token):
 ```c++
 raytiles::pool_config pool_conf;
 
-pool_conf.texture_host     = "https://api.mapbox.com";
-pool_conf.texture_url_path = "/v4/mapbox.satellite/{zoom}/{x}/{y}.pngraw?access_token=YOUR_MAPBOX_ACCESS_TOKEN";
-
+pool_conf.texture_url = "https://api.mapbox.com/v4/mapbox.satellite/{zoom}/{x}/{y}.pngraw?access_token=YOUR_MAPBOX_ACCESS_TOKEN";
 ```
 
 ## Caching
@@ -206,6 +203,27 @@ You can manually clear the cache by deleting the cache directory.
 For caching purposes, the downloader pool does not cancel in-flight requests, so even if tile is currently not needed,
 it will still be downloaded and cached. There
 is [an open issue to add support for request cancellation](https://github.com/ziv/raytiles/issues/48).
+
+## Memory Usage
+
+The default configuration optimizes for relatively low memory usage, with a maximum of ~600 tiles in memory at any given
+time. Note that any change in configuration may affect the memory usage, so it's important to understand how the memory
+is calculated.
+
+- Tile size: $256*256=65,536$ pixels
+- RGBA texture: $65,536 \text{ pixels} \times 4 \text{ channels} = 262,144$ bytes (256 KB) per tile (uncompressed)
+
+VRAM:
+
+- Albedo texture + mipmap: $256 \text{ KB} \times 1.33 = \textbf{341 KB}$
+- Heightmap texture $\textbf{256 KB}$
+- Normal map texture $\textbf{256 KB}$
+- VRAM per tile (uncompressed with mipmap): $341 + 256 + 256 = \textbf{853 KB}$
+
+For 600 tiles, the total memory usage would be approximately:
+
+- VRAM $853 \text{ KB} \times 600 = 511,800 \text{ KB} \approx \textbf{500 MB}$
+- RAM $256 \text{ KB} \times 600 = 153,600 \text{ KB} = \textbf{150 MB}$
 
 ## How It Works
 
