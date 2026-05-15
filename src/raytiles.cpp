@@ -133,25 +133,36 @@ namespace raytiles {
         // look for done futures in "desired_tiles" to build "rendered_tiles" map
         process_loaded_tiles();
 
-        // do not update tiles list if didn't pass enough distance
-        if (Vector3DistanceSqr(position, last_position) < conf.update_distance_sq && std::fabs(position.y - last_position.y) < conf.update_height) return;
-        last_position = position;
+        // // do not update tiles list if didn't pass enough distance
+        // if (Vector3DistanceSqr(position, last_position) < conf.update_distance_sq && std::fabs(position.y - last_position.y) < conf.update_height) return;
+        // last_position = position;
+        //
+        // // use current location to build "desired_tiles" map
+        // process_current_location();
 
-        // use current location to build "desired_tiles" map
-        process_current_location();
+        if (Vector3DistanceSqr(position, last_position) > conf.update_distance_sq || std::fabs(position.y - last_position.y) < conf.update_height) {
+            last_position = position;
+
+            // use current location to build "desired_tiles" map
+            process_current_location();
+        }
+
+        last_frustum = utils::extract_frustum(camera,
+                                              static_cast<float>(GetScreenWidth()),
+                                              static_cast<float>(GetScreenHeight()),
+                                              conf.near_plane,
+                                              conf.far_plane);
     }
 
     void streamer::draw(const Camera3D &camera) {
         rendered = 0;
         // set the camera location (for distance -> fog)
         SetShaderValue(*displacement_shader, cam_pos_loc, &camera.position, SHADER_UNIFORM_VEC3);
-        const auto f = utils::extract_frustum(camera, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()), conf.near_plane,
-                                              conf.far_plane);
 
         for (const auto &[key, tile]: rendering_tiles) {
             const auto &t = tiles.at(key.zoom);
 
-            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, f)) continue;
+            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, last_frustum)) continue;
 
             // material->maps[0]
             // const auto m = material();
@@ -206,8 +217,16 @@ namespace raytiles {
 
     void streamer::remove_unused_tiles() {
         std::erase_if(rendering_tiles, [&](const auto &item) {
+            // if it in desired, keep it
             if (desired_keys.contains(item.first)) return false;
+
+            // if not in desired and not in frustum, remove without thinking
+            if (!utils::is_tile_in_frustum(item.second.tx, item.second.tz, item.second.size, last_frustum)) return true;
+
+            // if the tile is far beyond the horizon, remove without thinking
             if (is_tile_out_of_area(item.first)) return true;
+
+            // here we stop to think
             if (!is_tile_covered(item.first)) return false;
             return true;
         });
@@ -470,6 +489,7 @@ namespace raytiles {
             }
 
             rendering_tiles.insert_or_assign(key, loaded_tile{
+                                                 tiles.at(key.zoom).size,
                                                  tile.tx,
                                                  tile.tz,
                                                  std::move(texture_tex),

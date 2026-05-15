@@ -325,6 +325,7 @@ namespace raytiles {
 
         raii::material material{};
         Vector3 last_position = {-9999.9f, -9999.9f, -9999.9f};
+        Frustum last_frustum{};
 
         std::unordered_set<tile_key> desired_keys;
         std::unordered_map<tile_key, loading_tile> loading_tiles;

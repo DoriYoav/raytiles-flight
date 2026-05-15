@@ -40,6 +40,7 @@ namespace raytiles {
     /// Fully promoted tile: GPU textures uploaded, heightmap CPU image retained
     /// for `ground_height()` queries.
     struct loaded_tile {
+        Meters size;
         float tx;
         float tz;
         raii::texture tx_texture;
