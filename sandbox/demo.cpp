@@ -10,6 +10,9 @@ int main() {
     raytiles::config conf;
     raytiles::pool_config pool_conf;
 
+    conf.anchor_x_tile = 289;
+    conf.anchor_z_tile = 198;
+
     raytiles::streamer streamer(conf, pool_conf);
     streamer.set_normals_scale(5.0f);
 
@@ -29,6 +32,8 @@ int main() {
     while (!WindowShouldClose()) {
         const auto dt = GetFrameTime();
         f.update(camera, dt);
+
+        UpdateCamera(&camera, CAMERA_ORBITAL);
 
         streamer.set_sun_direction(Vector3{0.1f, sun, 0.0f});
         streamer.update(camera);
