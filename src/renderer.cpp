@@ -78,8 +78,9 @@ namespace raytiles {
     void renderer::debug_3d(const DrawView &draw_view) const {
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
             const auto &t = draw_view.tiles.at(key.zoom);
-            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) continue;
-            DrawCubeWires({tile.tx, 0.0f, tile.tz}, t.size, 200.0f, t.size, GREEN);
+            if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+                DrawCubeWires({tile.tx, 0.0f, tile.tz}, t.size, 200.0f, t.size, GREEN);
+            }
         }
     }
 
@@ -87,13 +88,13 @@ namespace raytiles {
         const auto width = GetScreenWidth();
         const auto height = GetScreenHeight();
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
-            if (x < 0 || x > width || y < 0 || y > height) continue;
-
             const auto &t = draw_view.tiles.at(key.zoom);
-            if (!utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) continue;
+            if (utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+                const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
+                if (x < 0 || x > width || y < 0 || y > height) continue;
 
-            DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, draw_view.desired_keys.contains(key) ? GREEN : RED);
+                DrawText(TextFormat("%d", key.zoom), static_cast<int>(x), static_cast<int>(y), 15, draw_view.desired_keys.contains(key) ? GREEN : RED);
+            }
         }
     }
 
