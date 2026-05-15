@@ -56,7 +56,7 @@ namespace raytiles {
         update_shader_uniforms();
     }
 
-    int renderer::draw(const Vector3 &position, const DrawView &draw_view) {
+    int renderer::draw(const Vector3 &position, const DebugView &draw_view) {
         int rendered = 0;
         SetShaderValue(*displacement_shader, cam_pos_loc, &position, SHADER_UNIFORM_VEC3);
 

@@ -107,7 +107,7 @@ namespace raytiles {
     }
 
     void streamer::draw(const Camera3D &camera) {
-        rendered = tile_renderer.draw(camera.position, {last_frustum, rendering_tiles, tiles});
+        rendered = tile_renderer.draw(camera.position, {last_frustum, rendering_tiles, tiles, desired_keys});
     }
 
     void streamer::debug(const Camera3D &camera) {

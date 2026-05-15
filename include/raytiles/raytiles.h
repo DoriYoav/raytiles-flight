@@ -206,7 +206,7 @@ namespace raytiles {
     public:
         explicit renderer(rendering_config &conf);
 
-        int draw(const Vector3 &position, const DrawView &draw_view);
+        int draw(const Vector3 &position, const DebugView &draw_view);
 
         /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc.).
         /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
