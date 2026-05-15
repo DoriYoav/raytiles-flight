@@ -2,6 +2,11 @@
 
 I'm really glad you're reading this, because we need volunteer developers to help this project come to fruition.
 
+### LLM Contributions
+
+LLM generated code is not welcome in this project, but LLM generated documentation is welcome as long as it passed human
+review.
+
 ### Did you find a bug?
 
 - Ensure the bug was not already reported by searching on GitHub under [Issues](https://github.com/ziv/raytiles/issues).
@@ -25,9 +30,6 @@ mockups, please include them as well.
 ### Development Environment
 
 To set up the development environment, you will need to have C++ compiler supporting C++23, and CMake installed.
-
-To work with Mapbox maps, you will need to create an account on Mapbox and obtain an access token. You can sign up for a
-free account at [Mapbox](https://www.mapbox.com/).
 
 Fetch the code and set up the build environment:
 

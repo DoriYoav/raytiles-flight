@@ -47,7 +47,7 @@ From now on, all calculations will be based on $\phi=32^\circ$ but the real valu
 
 From commercial aircraft, at 43K feets (~13Km) the distance to the horizon is approximately 250 miles (~400km).
 
-![horizon](res/horizon.png)
+![horizon](horizon.png)
 
 From Pythagorean theorem, we can calculate the distance to the horizon `d` based on the height of the observer `h` and
 the radius of the Earth `R` (let say Earth is a perfect sphere):
