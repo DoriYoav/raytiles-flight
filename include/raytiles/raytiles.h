@@ -49,14 +49,15 @@ namespace raytiles {
 
         /// Lowest level-of-detail zoom that will ever be loaded. Tiles outside the
         /// camera's near radius are kept at this zoom to bound the working set.
-        /// Changing this value must also update "thresholds" and "base_zoom_tile_size"
-        /// Note that this library never tested against base_zoom lower than 9
+        /// Changing this value also requires updating `thresholds` and
+        /// `base_zoom_tile_size`. Note: this library has never been tested with
+        /// a `base_zoom` lower than 9.
         int base_zoom = 9;
 
         /// Highest level-of-detail zoom available. Tiles directly under the camera
         /// are subdivided up to this zoom.
-        /// Changing this value must also update "thresholds"
-        /// 15 is max zoom currently supported
+        /// Changing this value also requires updating `thresholds`.
+        /// 15 is the maximum zoom currently supported.
         int max_zoom = 15;
 
         /// World size (in meters) of one tile at `base_zoom`. Tiles at higher zooms
@@ -68,16 +69,17 @@ namespace raytiles {
         int rendering_radius = 6;
 
         /// Skirt geometry overlap factor (per side) used to hide cracks between
-        /// neighboring tiles at different LODs.
-        /// Refer to the max_zoom.
+        /// neighboring tiles at different LODs. Expressed relative to a tile at
+        /// `max_zoom`.
         float skirt_size = 0.01f;
 
-        /// Scaling the heightmap by this factor to increase or reduce the real height
-        /// into desired (drama factor)
+        /// Scales the heightmap by this factor to exaggerate or flatten the
+        /// terrain relief (drama factor).
         float height_scale = 1.0f;
 
-        /// Scaling the normals by this factor to increase or reduce the lighting contrast.
-        /// Higher values make the terrain look bumpier, but can cause lighting artifacts if the normals are too steep.
+        /// Scales the normals by this factor to increase or reduce lighting
+        /// contrast. Higher values make the terrain look bumpier, but can cause
+        /// lighting artifacts if the normals become too steep.
         float normals_scale = 1.0f;
 
         /// Squared XZ distance the camera must travel before the desired-tile set
@@ -111,13 +113,13 @@ namespace raytiles {
         /// Larger values hide cracks more reliably but cost more fill rate.
         Meters skirt_drop = 1000.0f;
 
-        /// Weather to log from the threads or from the main process
-        /// Logging from main thread/process is done via raylib's TraceLog function
+        /// Whether to emit log lines from the streamer. Logs from the main
+        /// thread/process are routed through raylib's `TraceLog`.
         bool use_logger = false;
 
-        /// Zoom level distance thresholds (9 to 15)
-        /// Optimized for performance and limit the tiles number under 600
-        /// Changing base_zoom or max_zoom must be reflected here
+        /// Per-zoom distance thresholds (9 to 15). Tuned for performance and to
+        /// keep the resident tile count under 600. If `base_zoom` or `max_zoom`
+        /// changes, this map must be updated to match.
         std::unordered_map<Zoom, Meters> thresholds = {
             {9, 100000.0f},
             {10, 80000.0f},
@@ -139,7 +141,7 @@ namespace raytiles {
         /// local proxies; never enable against a real server.
         bool allow_insecure_tls = false;
 
-        /// Weather to log from the pool threads
+        /// Whether the pool's worker threads emit log lines.
         bool use_logger = false;
 
         /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
@@ -148,10 +150,10 @@ namespace raytiles {
         std::string heightmap_cache_path = "assets/heightmap/{}/{}/{}.png";
         std::string normals_cache_path = "assets/normals/{}/{}/{}.png";
 
-        /// Providers URLs template items
-        /// URL always constructed from Zoom/X/Z and optional token
-        /// Can be replaced with any provider following the XYZ (Slippy map) format
-        /// and provide RGB heightmaps.
+        /// Provider URL templates. The full request URL is constructed from
+        /// `{zoom}/{x}/{z}` (plus any optional token in the template). Any
+        /// provider following the XYZ (slippy-map) convention works, as long as
+        /// the heightmap provider returns RGB-encoded heightmaps.
         std::string texture_url = RAYTILES_TEXTURE_URL;
         std::string texture_host{};
         std::string texture_url_path{};
@@ -175,7 +177,7 @@ namespace raytiles {
     ///
     /// Typical use:
     /// @code
-    ///   raytiles::streamer s(conf, provider);
+    ///   raytiles::streamer s(conf, pool_conf);
     ///   while (!WindowShouldClose()) {
     ///     s.update(camera);
     ///     BeginDrawing();
@@ -191,7 +193,7 @@ namespace raytiles {
     class streamer {
     public:
         /// @param conf            Tunable parameters; moved into the streamer.
-        /// @param pool_conf       Tunable parameters for the tile downloader pool. moved into the pool.
+        /// @param pool_conf       Tunable parameters for the tile downloader pool; moved into the pool.
         /// @note A raylib window must already be initialized (`InitWindow`) before
         ///       constructing a streamer because shader / texture creation requires
         ///       a live GL context.
@@ -241,28 +243,27 @@ namespace raytiles {
 
         void set_fog_color(float r, float g, float b, float a);
 
-        /// Set the fog start distance, the distance from the camera
-        /// colors start to blend with fog
+        /// Sets the fog start distance — the distance from the camera at which
+        /// colors begin to blend with the fog.
         void set_fog_start(float distance);
 
-        /// Set the fog end distance, the distance from the camera
-        /// colors are fully blended with fog color
+        /// Sets the fog end distance — the distance from the camera at which
+        /// colors are fully blended with the fog color.
         void set_fog_end(float distance);
 
-        /// Set the heightmap scale factor, to increase or reduce
-        /// the real height into desired (drama factor)
+        /// Sets the heightmap scale factor, which exaggerates or flattens the
+        /// terrain relief (drama factor).
         void set_height_scale(float scale);
 
-        /// Set the normals scale factor, to increase or reduce
-        /// the lighting contrast.
+        /// Sets the normals scale factor to increase or reduce lighting contrast.
         void set_normals_scale(float scale);
 
-        /// Sets the sun direction vector for the displacement
-        /// shader's lighting calculations.
+        /// Sets the sun direction vector used by the displacement shader's
+        /// lighting calculations.
         void set_sun_direction(Vector3 direction);
 
-        /// Set the intensity of the sun lighting, to increase
-        /// or reduce the contrast between lit and shaded areas.
+        /// Sets the sun lighting intensity, which controls the contrast between
+        /// lit and shaded areas.
         void set_sun_scale(float scale);
 
         /// Returns the terrain altitude (Y world-coordinate) under `position`,

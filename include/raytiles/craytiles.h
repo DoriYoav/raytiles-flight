@@ -183,8 +183,8 @@ void RaytilesStreamerSetFogEnd(RaytilesStreamer *streamer, float distance);
 void RaytilesStreamerSetHeightScale(RaytilesStreamer *streamer, float scale);
 
 /// Sets the normals XY multiplier used by the fragment shader. Higher values
-/// produce stronger lighting contrast; very large values may produce non
-/// physical normals once renormalized.
+/// produce stronger lighting contrast; very large values can produce
+/// non-physical normals once renormalized.
 void RaytilesStreamerSetNormalsScale(RaytilesStreamer *streamer, float scale);
 
 /// Sets the sun direction vector used by the fragment shader's lighting.

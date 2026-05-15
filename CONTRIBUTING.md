@@ -1,11 +1,11 @@
 # How to contribute
 
-I'm really glad you're reading this, because we need volunteer developers to help this project come to fruition.
+I'm really glad you're reading this, we need volunteer developers to help bring this project to fruition.
 
 ### LLM Contributions
 
-LLM generated code is not welcome in this project, but LLM generated documentation is welcome as long as it passed human
-review.
+LLM-generated code is not welcome in this project, but LLM-generated documentation is welcome as long as it has passed
+human review.
 
 ### Did you find a bug?
 
@@ -22,14 +22,13 @@ review.
 
 ### Do you have a new idea? A feature request?
 
-Create a new issue and describe the feature you would like to see implemented. Be sure to include a clear description of
-the
-problem you're trying to solve, and how your proposed feature would solve it. If you have any relevant code samples or
-mockups, please include them as well.
+Create a new issue describing the feature you would like to see implemented. Be sure to include a clear description of
+the problem you're trying to solve and how your proposed feature would solve it. If you have any relevant code samples
+or mockups, please include them as well.
 
 ### Development Environment
 
-To set up the development environment, you will need to have C++ compiler supporting C++23, and CMake installed.
+To set up the development environment, you will need a C++ compiler that supports C++23 and CMake installed.
 
 Fetch the code and set up the build environment:
 
