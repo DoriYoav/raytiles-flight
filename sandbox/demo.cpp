@@ -11,9 +11,9 @@ int main() {
     raytiles::rendering_config rendering;
     raytiles::pool_config pool_conf;
 
-    world.anchor_x_tile = 269;
-    world.anchor_z_tile = 186;
-    world.skirt_size = 0.5f;
+    // world.anchor_x_tile = 373;
+    // world.anchor_z_tile = 214;
+    // world.skirt_size = 0.5f;
 
 
     raytiles::streamer streamer(world, streaming, rendering, pool_conf);
@@ -30,6 +30,8 @@ int main() {
     streamer.get_renderer().set_fog_color(SKYBLUE);
     streamer.get_renderer().set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
+    bool wireframe = true;
+    bool labels = true;
 
 
     while (!WindowShouldClose()) {
@@ -47,14 +49,26 @@ int main() {
         BeginMode3D(camera);
         // draw the world around the camera
         streamer.draw(camera);
-        streamer.debug_3d();
+        if (wireframe) streamer.debug_3d();
         EndMode3D();
-        streamer.debug(camera);
+
+        if (labels) {
+            DrawRectangle(5, 5, 400, 100, Fade(BLACK, 0.5f));
+            streamer.debug(camera);
+        }
+
+        DrawRectangle(5, 550, 600, 40, Fade(BLACK, 0.5f));
+        DrawText("Controls: K to toggle labels, L to toggle wireframe", 10, 560, 20, WHITE);
         EndDrawing();
 
         if (IsKeyDown(KEY_LEFT_BRACKET)) sun -= dt * 0.5f;
         if (IsKeyDown(KEY_RIGHT_BRACKET)) sun += dt * 0.5f;
         sun = std::clamp(sun, -1.0f, 1.0f);
+
+        if (IsKeyPressed(KEY_L)) wireframe = !wireframe;
+        if (IsKeyPressed(KEY_K)) labels = !labels;
+
+
     }
 
     CloseWindow();
