@@ -30,6 +30,7 @@
 #endif
 
 namespace raytiles {
+    // replaces first occurrence by design
     static void replace(std::string &str, const std::string &from, const std::string &to) {
         if (from.empty()) return;
         const size_t pos = str.find(from);
@@ -99,8 +100,8 @@ namespace raytiles {
         [[nodiscard]] httplib::Client create_client(const std::string &host) const {
             httplib::Client cli(host);
             cli.set_follow_location(true);
-            cli.set_connection_timeout(10);
-            cli.set_read_timeout(5);
+            cli.set_connection_timeout(5);
+            cli.set_read_timeout(3);
             cli.set_keep_alive(true);
             cli.enable_server_certificate_verification(!config.allow_insecure_tls);
             return cli;
@@ -265,12 +266,14 @@ namespace raytiles {
             for (int i = 0; i < config.download_threads; ++i) workers.emplace_back([this](const std::stop_token &st) { worker_loop(st); });
         }
 
+        // destructing the streamer may block while in-flight downloads time out.
         ~pool() {
             for (auto &w: workers) w.request_stop();
             cv.notify_all();
             workers.clear();
         }
 
+        // Cancel job only if not already picked up
         void cancel_load(const std::string &path) {
             std::lock_guard lock(mtx);
             if (in_flight_bytes.contains(path)) {
@@ -299,6 +302,8 @@ namespace raytiles {
         // that window, it receives a future that is already satisfied - which is
         // exactly the desired behavior (the bytes are immediately available, no
         // duplicate download is queued).
+        //
+        // rare race may cause a single tile to be re-read from cache
         std::shared_future<std::string> enqueue_and_load(const std::string &path, const std::string &url, const request_type type = TEXTURE) {
             std::lock_guard lock(mtx);
 
