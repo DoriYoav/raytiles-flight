@@ -2,9 +2,13 @@
 /// C wrapper for the raytiles public API (see raytiles.h).
 ///
 /// Mirrors the C++ API in C-compatible form:
-///   - `raytiles::config`      -> `RaytilesConfig`      (default: `RaytilesConfigDefault()`)
-///   - `raytiles::pool_config` -> `RaytilesPoolConfig`  (default: `RaytilesPoolConfigDefault()`)
-///   - `raytiles::streamer`    -> opaque `RaytilesStreamer*`
+///   - `raytiles::world_config`,
+///     `raytiles::streaming_config`,
+///     `raytiles::rendering_config` -> flattened into `RaytilesConfig`
+///                                     (default: `RaytilesConfigDefault()`)
+///   - `raytiles::pool_config`      -> `RaytilesPoolConfig`
+///                                     (default: `RaytilesPoolConfigDefault()`)
+///   - `raytiles::streamer`         -> opaque `RaytilesStreamer*`
 ///
 /// String fields in `RaytilesPoolConfig` are `const char*`; the wrapper copies
 /// them into the underlying C++ `std::string` on construction. NULL is treated
@@ -25,7 +29,9 @@
 extern "C" {
 #endif
 
-/// Tunable parameters for a streamer instance. Mirrors `raytiles::config`.
+/// Tunable parameters for a streamer instance. Flattens
+/// `raytiles::world_config`, `raytiles::streaming_config`, and
+/// `raytiles::rendering_config` into a single C struct.
 /// Prefer `RaytilesConfigDefault()` to obtain a defaulted instance, then
 /// override individual fields. See `raytiles.h` for the field-by-field
 /// semantics; the field names are kept identical.
@@ -45,7 +51,7 @@ typedef struct RaytilesConfig {
     /// Normals XY multiplier (lighting contrast factor).
     float normals_scale;
     /// Squared XZ distance the camera must travel to trigger a re-stream.
-    float update_distance;
+    float update_distance_sq;
     /// Altitude delta (meters) that triggers a re-stream.
     float update_height;
     /// Per-frame wall-clock budget (seconds) for promoting tiles to GPU.
@@ -131,7 +137,12 @@ typedef struct RaytilesPoolConfig {
 /// freed with `RaytilesStreamerDestroy`.
 typedef struct RaytilesStreamer RaytilesStreamer;
 
-/// Returns a config populated with the same defaults as `raytiles::config{}`.
+/// Returns a config populated with the same defaults as the C++
+/// `world_config{}`, `streaming_config{}`, and `rendering_config{}`.
+/// `threshold_zooms` and `threshold_values` point at library-owned static
+/// storage seeded from `streaming_config::thresholds`, so the returned
+/// struct can be passed straight to `RaytilesStreamerCreate` without any
+/// extra setup. The arrays remain valid for the lifetime of the process.
 RaytilesConfig RaytilesConfigDefault(void);
 
 /// Returns a pool config populated with the same defaults as
@@ -153,15 +164,15 @@ void RaytilesStreamerDestroy(const RaytilesStreamer *streamer);
 /// Updates the desired tile set based on the camera and promotes any finished
 /// downloads to GPU. Cheap to call every frame; internally rate-limited by
 /// `RaytilesConfig::upload_budget_sec` and `max_uploads_per_frame`.
-void RaytilesStreamerUpdate(RaytilesStreamer *streamer, const Camera3D &camera);
+void RaytilesStreamerUpdate(RaytilesStreamer *streamer, Camera3D camera);
 
 /// Renders all currently loaded tiles. Call between `BeginMode3D` /
 /// `EndMode3D` with the same camera passed to `RaytilesStreamerUpdate`.
-void RaytilesStreamerDraw(RaytilesStreamer *streamer, const Camera3D &camera);
+void RaytilesStreamerDraw(RaytilesStreamer *streamer, Camera3D camera);
 
 /// Draws a 2D debug HUD with per-tile zoom levels. Call between
 /// `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
-void RaytilesStreamerDebug(RaytilesStreamer *streamer, const Camera3D &camera);
+void RaytilesStreamerDebug(RaytilesStreamer *streamer, Camera3D camera);
 
 /// Draws 3D debug overlays (tile bounds). Call inside the same
 /// `BeginMode3D` / `EndMode3D` block as `RaytilesStreamerDraw`.

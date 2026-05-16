@@ -91,7 +91,8 @@ namespace raytiles {
         // look for done futures in "desired_tiles" to build "rendered_tiles" map
         process_loaded_tiles();
 
-        if (Vector3DistanceSqr(position, last_position) > streaming.update_distance_sq || std::fabs(position.y - last_position.y) < streaming.update_height) {
+        if (Vector2Distance({position.x, position.z}, {last_position.x, last_position.z}) > streaming.update_distance_sq ||
+            std::fabs(position.y - last_position.y) > streaming.update_height) {
             last_position = position;
 
             // use current location to build "desired_tiles" map
@@ -361,7 +362,7 @@ namespace raytiles {
     }
 
     MetersSq streamer::calculate_horizon() const {
-        const auto d = 3.57 * 1000 * std::max(last_position.y, 1.0f); // the radius of rendering
+        const auto d = utils::horizon_ratio * std::max(last_position.y, 1.0f); // the radius of rendering
         return d * d;
     }
 
