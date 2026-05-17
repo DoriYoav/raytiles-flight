@@ -65,8 +65,8 @@ namespace raytiles {
             {11, 1.00f},
             {12, 1.00f},
             {13, 1.00f},
-            {14, 1.01f},
-            {15, 1.02f}
+            {14, 1.00f},
+            {15, 1.00f}
         };
 
         /// Generate trilinear / anisotropic mipmaps for the albedo texture on
