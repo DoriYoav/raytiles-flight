@@ -101,6 +101,10 @@ endif ()
 add_executable(demo sandbox/demo.cpp)
 target_link_libraries(demo PRIVATE ${PROJECT_NAME})
 
+# quick start
+add_executable(quick sandbox/quick_start.cpp)
+target_link_libraries(quick PRIVATE ${PROJECT_NAME})
+
 # perf baseline harness: default-config streamer, logs initial-load wall-time
 add_executable(baseline sandbox/base_line.cpp)
 target_link_libraries(baseline PRIVATE ${PROJECT_NAME})
