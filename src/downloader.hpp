@@ -58,10 +58,11 @@ namespace raytiles {
     }
 
     static std::pair<std::string, std::string> split_url(const std::string &url) {
-        const size_t search_start = url.find("://") + 3;
-        const size_t path_pos = url.find('/', search_start);
+        const auto scheme = url.find("://");
+        if (scheme == std::string::npos) throw std::runtime_error("invalid url (no scheme): " + url);
 
-        if (path_pos == std::string::npos) return {url, ""};
+        const auto path_pos = url.find('/', scheme + 3);
+        if (path_pos == std::string::npos) return {url, "/"};
 
         return {url.substr(0, path_pos), url.substr(path_pos)};
     }
@@ -298,7 +299,7 @@ namespace raytiles {
             : config(std::move(conf)) {
             // normalize configuration
             // take the URLs and split them to 2 parts, the host part and path part
-            // todo input validation
+            // todo input validation (FOR EVERYTHING)
             auto [texture_host, texture_path] = split_url(config.texture_url);
             config.texture_host = std::move(texture_host);
             config.texture_url_path = std::move(texture_path);
