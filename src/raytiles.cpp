@@ -1,4 +1,5 @@
 #include "../include/raytiles/raytiles.h"
+
 #if defined(_WIN32)
 #define NOGDI
 #define NOUSER
@@ -16,6 +17,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <ranges>
 
 #include "downloader.hpp"
 #include "raytiles/detail/tile.hpp"
@@ -152,13 +154,10 @@ namespace raytiles {
             return true;
         });
 
-        // std::erase_if(loading_tiles, [&](const auto &item) {
-        //     // also drop loading-tile bookkeeping for tiles we no longer want. the
-        //     // background workers still finish their downloads and write to disk (the
-        //     // file cache is the whole point of background streaming), but we stop
-        //     // holding the resolved bytes in memory once they arrive.
-        //     return !desired_keys.contains(item.first);
-        // });
+        // if key is no longer desired, cancel its loading
+        for (auto &key: std::views::keys(loading_tiles)) {
+            if (!desired_keys.contains(key)) tile_downloader->cancel(key.zoom, key.x, key.z);
+        }
     }
 
     std::optional<float> streamer::ground_height(const Vector3 position) const {

@@ -343,6 +343,12 @@ namespace raytiles {
             cancel_load(std::vformat(config.normals_cache_path, std::make_format_args(zoom, x, y)));
         }
 
+        void cancel(const int zoom, const int x, const int y) {
+            cancel_texture(zoom, x, y);
+            cancel_heightmap(zoom, x, y);
+            cancel_normals(zoom, x, y);
+        }
+
         // returns a shared_future that resolves with a decoded raylib Image.
         // the worker thread reads the tile from disk (or downloads it), then
         // decodes the PNG bytes with stb_image (raylib's image decoders are
