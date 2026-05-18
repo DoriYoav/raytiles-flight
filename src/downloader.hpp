@@ -279,6 +279,10 @@ namespace raytiles {
                     // consumes the future via .get(); they must free it with
                     // UnloadImage (or wrap it in raii::image).
                     Image img = decode_png(bytes);
+                    {
+                        std::lock_guard lock(mtx);
+                        in_flight_images.erase(img_job.path);
+                    }
                     img_job.promise.set_value(img);
                 } catch (...) {
                     try {
@@ -286,10 +290,6 @@ namespace raytiles {
                     } catch (...) {
                         // promise already satisfied or broken; nothing else we can do
                     }
-                }
-                {
-                    std::lock_guard lock(mtx);
-                    in_flight_images.erase(img_job.path);
                 }
             }
         }
