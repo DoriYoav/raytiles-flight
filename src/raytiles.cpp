@@ -141,6 +141,8 @@ namespace raytiles {
         std::erase_if(rendering_tiles, [&](const auto &item) {
             // if it in desired, keep it
             if (desired_keys.contains(item.first)) return false;
+            // if it is base zoom and not desired, no need to check the rest, remove it
+            if (item.first.zoom == world.base_zoom) return true;
             // if not in desired and not in frustum, remove without thinking
             if (!utils::is_tile_in_frustum(item.second.tx, item.second.tz, item.second.size, last_frustum)) return true;
             // if the tile is far beyond the horizon, remove without thinking
@@ -150,13 +152,13 @@ namespace raytiles {
             return true;
         });
 
-        std::erase_if(loading_tiles, [&](const auto &item) {
-            // also drop loading-tile bookkeeping for tiles we no longer want. the
-            // background workers still finish their downloads and write to disk (the
-            // file cache is the whole point of background streaming), but we stop
-            // holding the resolved bytes in memory once they arrive.
-            return !desired_keys.contains(item.first);
-        });
+        // std::erase_if(loading_tiles, [&](const auto &item) {
+        //     // also drop loading-tile bookkeeping for tiles we no longer want. the
+        //     // background workers still finish their downloads and write to disk (the
+        //     // file cache is the whole point of background streaming), but we stop
+        //     // holding the resolved bytes in memory once they arrive.
+        //     return !desired_keys.contains(item.first);
+        // });
     }
 
     std::optional<float> streamer::ground_height(const Vector3 position) const {
