@@ -406,8 +406,6 @@ namespace raytiles {
         // internal cache
         bool loading = true;
         int rendered = 0;
-        float width = 0.0f;
-        float height = 0.0f;
 
         // update every frame
         Vector3 last_position = {-9999.9f, -9999.9f, -9999.9f};

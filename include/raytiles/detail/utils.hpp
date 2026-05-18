@@ -106,8 +106,8 @@ namespace raytiles::utils {
         }
     }
 
-    inline Frustum extract_frustum(const Camera3D &camera, const float screen_width, const float screen_height, const float near_plane, const float far_plane) {
-        const float aspect = screen_width / screen_height;
+    inline Frustum extract_frustum(const Camera3D &camera, const float near_plane, const float far_plane) {
+        const float aspect = static_cast<float>(GetScreenWidth()) / static_cast<float>(GetScreenHeight());
         const Matrix view = GetCameraMatrix(camera);
         const Matrix proj = MatrixPerspective(camera.fovy * DEG2RAD, aspect, near_plane, far_plane);
 

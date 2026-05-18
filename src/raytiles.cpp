@@ -35,9 +35,7 @@ namespace raytiles {
         : world(std::move(world_conf)),
           streaming(std::move(streaming_conf)),
           tile_renderer(rendering_conf),
-          tile_downloader(std::make_unique<pool>(std::move(pool_conf))),
-          width(static_cast<float>(GetScreenWidth())),
-          height(static_cast<float>(GetScreenHeight())) {
+          tile_downloader(std::make_unique<pool>(std::move(pool_conf))) {
         // input validation
         if (world.max_zoom > max_supported_zoom) {
             // stop on not supported zoom
@@ -114,8 +112,6 @@ namespace raytiles {
 
         // calculate frustum
         last_frustum = utils::extract_frustum(camera,
-                                              width,
-                                              height,
                                               static_cast<float>(streaming.near_plane),
                                               static_cast<float>(streaming.far_plane)
         );
