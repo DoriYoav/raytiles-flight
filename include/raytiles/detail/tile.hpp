@@ -56,6 +56,7 @@ namespace raytiles {
         raii::texture hm_texture;
         raii::image hm_image;
         raii::texture nl_texture;
+        bool in_frustum_this_frame;
     };
 } // namespace raytiles
 

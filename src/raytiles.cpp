@@ -97,7 +97,6 @@ namespace raytiles {
 
     void streamer::update(const Camera3D &camera) {
         const auto position = camera.position;
-
         // start with clearing items we've done with
         remove_unused_tiles();
 
@@ -117,6 +116,10 @@ namespace raytiles {
                                               static_cast<float>(streaming.near_plane),
                                               static_cast<float>(streaming.far_plane)
         );
+
+        for (auto &tile: rendering_tiles | std::views::values) {
+            tile.in_frustum_this_frame = utils::is_tile_in_frustum(tile.tx, tile.tz, tile.size, last_frustum);
+        }
 
         // loading status (initial loading)
         if (loading && loading_tiles.empty()) {
@@ -146,7 +149,7 @@ namespace raytiles {
             // if it is base zoom and not desired, no need to check the rest, remove it
             if (item.first.zoom == world.base_zoom) return true;
             // if not in desired and not in frustum, remove without thinking
-            if (!utils::is_tile_in_frustum(item.second.tx, item.second.tz, item.second.size, last_frustum)) return true;
+            if (!item.second.in_frustum_this_frame) return true;
             // if the tile is far beyond the horizon, remove without thinking
             if (is_tile_out_of_area(item.first)) return true;
             // here we stop to think
@@ -155,7 +158,7 @@ namespace raytiles {
         });
 
         // if key is no longer desired, cancel its loading
-        for (auto &key: std::views::keys(loading_tiles)) {
+        for (auto &key: loading_tiles | std::views::keys) {
             if (!desired_keys.contains(key)) tile_downloader->cancel(key.zoom, key.x, key.z);
         }
     }
@@ -326,7 +329,8 @@ namespace raytiles {
                                                  std::move(texture_tex),
                                                  std::move(height_tex),
                                                  std::move(height_img),
-                                                 std::move(normals_tex)
+                                                 std::move(normals_tex),
+                                                 false
                                              });
 
             it = loading_tiles.erase(it);

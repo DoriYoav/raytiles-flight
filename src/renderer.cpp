@@ -5,7 +5,7 @@
 
 namespace raytiles {
     renderer::renderer(const rendering_config &conf) : rendering(conf),
-                                                 displacement_shader(raii::load_shader_from_memory(shaders::vertex_shader, shaders::fragment_shader)) {
+                                                       displacement_shader(raii::load_shader_from_memory(shaders::vertex_shader, shaders::fragment_shader)) {
         material = raii::material{LoadMaterialDefault()};
         material->shader = *displacement_shader;
 
@@ -79,7 +79,8 @@ namespace raytiles {
 
     void renderer::debug_3d(const DebugView &draw_view) {
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+            if (tile.in_frustum_this_frame) {
+                const auto &t = draw_view.tiles.at(key.zoom);
                 DrawCubeWires({tile.tx, 0.0f, tile.tz}, t.size, 1000.0f, t.size, GREEN);
             }
         }
@@ -89,7 +90,7 @@ namespace raytiles {
         const auto width = static_cast<float>(GetScreenWidth());
         const auto height = static_cast<float>(GetScreenHeight());
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
+            if (tile.in_frustum_this_frame) {
                 const auto [x, y] = GetWorldToScreen({tile.tx, 0.0f, tile.tz}, camera);
                 if (x < 0 || x > width || y < 0 || y > height) continue;
 

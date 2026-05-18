@@ -89,8 +89,9 @@ namespace raytiles {
         img.width = w;
         img.height = h;
         img.mipmaps = 1;
-        img.format = (comp == 4) ? PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
-                                 : PIXELFORMAT_UNCOMPRESSED_R8G8B8;
+        img.format = (comp == 4)
+                         ? PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+                         : PIXELFORMAT_UNCOMPRESSED_R8G8B8;
         return img;
     }
 
@@ -242,11 +243,9 @@ namespace raytiles {
                 }
 
                 if (is_cancelled) {
-                    try {
-                        throw std::runtime_error("tile download cancelled");
-                    } catch (...) {
-                        img_job.promise.set_exception(std::current_exception());
-                    }
+                    img_job.promise.set_exception(
+                        std::make_exception_ptr(std::runtime_error("tile download cancelled"))
+                    );
                     continue;
                 }
 

@@ -37,7 +37,7 @@ int main() {
     // float flight_progress = 0.0f;
     // float flight_speed = 0.1f;
 
-    SetTraceLogLevel(LOG_INFO);
+    SetTraceLogLevel(LOG_WARNING);
     InitWindow(800, 600, "raytiles");
 
     std::string token = required_env("MAPBOX_TOKEN", "Mapbox");
