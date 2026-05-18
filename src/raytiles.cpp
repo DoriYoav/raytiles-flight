@@ -104,7 +104,7 @@ namespace raytiles {
         // look for done futures in "desired_tiles" to build "rendered_tiles" map
         process_loaded_tiles();
 
-        if (Vector2Distance({position.x, position.z}, {last_position.x, last_position.z}) > streaming.update_distance_sq ||
+        if (Vector2DistanceSqr({position.x, position.z}, {last_position.x, last_position.z}) > streaming.update_distance_sq ||
             std::fabs(position.y - last_position.y) > streaming.update_height) {
             last_position = position;
 
