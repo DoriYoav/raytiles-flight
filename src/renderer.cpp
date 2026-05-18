@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "raytiles/raytiles.h"
 #include "raytiles/detail/raii.hpp"
 #include "raytiles/detail/utils.hpp"
@@ -60,20 +62,49 @@ namespace raytiles {
     }
 
     int renderer::draw(const Vector3 &position, const DebugView &draw_view) {
-        int rendered = 0;
         SetShaderValue(*displacement_shader, cam_pos_loc, &position, SHADER_UNIFORM_VEC3);
-        update_shader_uniforms();
+        // todo should be lazy, call on "set_*"
+        // update_shader_uniforms();
+
+        // collecting and sorting tiles by distance from camera to
+        // gain GPU early-Z
+        // it cheaper than rendering by iterating unordered map -> poor early-Z
+        draw_order_.clear();
+        draw_order_.reserve(draw_view.rendering_tiles.size());
 
         for (const auto &[key, tile]: draw_view.rendering_tiles) {
-            if (const auto &t = draw_view.tiles.at(key.zoom); utils::is_tile_in_frustum(tile.tx, tile.tz, t.size, draw_view.frustum)) {
-                material->maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
-                material->maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
-                material->maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
+            const auto &t = draw_view.tiles.at(key.zoom);
+            if (!tile.in_frustum_this_frame) continue;
 
-                DrawMesh(*t.mesh, *material, MatrixTranslate(tile.tx, 0.0f, tile.tz));
-                ++rendered;
-            }
+            const float dx = tile.tx - position.x;
+            const float dz = tile.tz - position.z;
+            const float dist_sq = dx * dx + dz * dz; // XZ is enough; ignore Y for sorting
+            draw_order_.push_back({dist_sq, &key, &tile, &t});
         }
+
+        std::ranges::sort(draw_order_,
+                          [](const auto &a, const auto &b) { return a.dist_sq < b.dist_sq; });
+
+        int rendered = 0;
+        for (const auto &e: draw_order_) {
+            material->maps[MATERIAL_MAP_ALBEDO].texture = *e.tile->tx_texture;
+            material->maps[MATERIAL_MAP_ROUGHNESS].texture = *e.tile->hm_texture;
+            material->maps[MATERIAL_MAP_NORMAL].texture = *e.tile->nl_texture;
+            DrawMesh(*e.tv->mesh, *material, MatrixTranslate(e.tile->tx, 0.0f, e.tile->tz));
+            ++rendered;
+        }
+        // for (const auto &[key, tile]: draw_view.rendering_tiles) {
+        //     if (tile.in_frustum_this_frame) {
+        //         const auto &t = draw_view.tiles.at(key.zoom);
+        //
+        //         material->maps[MATERIAL_MAP_ALBEDO].texture = *tile.tx_texture;
+        //         material->maps[MATERIAL_MAP_ROUGHNESS].texture = *tile.hm_texture;
+        //         material->maps[MATERIAL_MAP_NORMAL].texture = *tile.nl_texture;
+        //
+        //         DrawMesh(*t.mesh, *material, MatrixTranslate(tile.tx, 0.0f, tile.tz));
+        //         ++rendered;
+        //     }
+        // }
         return rendered;
     }
 

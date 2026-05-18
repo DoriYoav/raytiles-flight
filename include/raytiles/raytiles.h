@@ -273,8 +273,16 @@ namespace raytiles {
         void set_sun_scale(float scale);
 
     private:
+        struct DrawEntry {
+            float dist_sq; // squared XZ distance from camera, used as sort key
+            const tile_key *key; // non-owning, points into draw_view.rendering_tiles
+            const loaded_tile *tile; // non-owning, same
+            const tile_value *tv; // non-owning, points into draw_view.tiles
+        };
+
         void update_shader_uniforms();
 
+        std::vector<DrawEntry> draw_order_{};
         rendering_config rendering;
 
         raii::shader displacement_shader;
@@ -418,6 +426,7 @@ namespace raytiles {
         std::unordered_map<tile_key, loaded_tile> rendering_tiles;
 
         // metadata about tiles by their zoom
+        // todo replace with fixed size array of std::array, there is a lot of acess to this map
         std::unordered_map<Zoom, tile_value> tiles;
     };
 } // namespace raytiles
