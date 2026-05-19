@@ -98,7 +98,7 @@ int main() {
         {12, 1.01f},
         {13, 1.01f},
         {14, 1.01f},
-        {15, 1.01f}
+        {15, 1.02f}
     };
 
 
@@ -116,7 +116,7 @@ int main() {
 
     FreeCamera f(camera);
 
-    Model x_wing = LoadModel("res/x-wing/scene.gltf");
+    // Model x_wing = LoadModel("res/x-wing/scene.gltf");
     Model tie = LoadModel("res/tie/scene.gltf");
     // x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
 
@@ -199,7 +199,7 @@ int main() {
         streamer.draw(camera);
         const Vector3 model_pos = Vector3Add(camera.position, Vector3Scale(forward, 50.0f));
 
-        DrawModelEx(x_wing, model_pos, rotationAxis, angle, {2.0f, 2.0f, 2.0f}, WHITE);
+        DrawModelEx(tie, model_pos, rotationAxis, angle, {2.0f, 2.0f, 2.0f}, WHITE);
         // if (wireframe) {
         //     streamer.debug_3d();
         // }

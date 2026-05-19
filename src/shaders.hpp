@@ -36,18 +36,13 @@ void main()
     displacedPosition.y += heightValue * heightScale;
 
     // if the pixel is on edge, push it down by a fixed amount to create a skirt effect
-    if (skirtDrop > 0.0)
-    {
-        float epsilon = 0.000001;
-        bool isEdge = (vertexTexCoord.x < epsilon) ||
-                      (vertexTexCoord.x > 1.0 - epsilon) ||
-                      (vertexTexCoord.y < epsilon) ||
-                      (vertexTexCoord.y > 1.0 - epsilon);
-        if (isEdge)
-        {
-            displacedPosition.y -= skirtDrop * heightScale;
-        }
-    }
+    float epsilon = 0.000001;
+    float isLeftEdge = step(vertexTexCoord.x, epsilon);
+    float isRightEdge = step(1.0 - epsilon, vertexTexCoord.x);
+    float isBottomEdge = step(vertexTexCoord.y, epsilon);
+    float isTopEdge = step(1.0 - epsilon, vertexTexCoord.y);
+    float edgeFactor = clamp(isLeftEdge + isRightEdge + isBottomEdge + isTopEdge, 0.0, 1.0);
+    displacedPosition.y -= skirtDrop * heightScale * edgeFactor;
 
     // calculate wold position with the displacement
     vec3 worldPosition = vec3(matModel * vec4(displacedPosition, 1.0));
@@ -98,5 +93,15 @@ void main()
     float fogFactor = clamp((fragCamDist - fogStart) / (fogEnd - fogStart), 0.0, 1.0);
     finalColor = mix(lit, fogColor, fogFactor);
 }
+)glsl";
+}
+
+namespace raytiles::sky_shaders {
+    // language=GLSL
+    constexpr auto vertex_shader = GLSL_VERSION_HEADER R"glsl(
+)glsl";
+
+    // language=GLSL
+    constexpr auto fragment_shader = GLSL_VERSION_HEADER R"glsl(
 )glsl";
 }
