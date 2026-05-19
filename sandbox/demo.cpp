@@ -84,11 +84,13 @@ int main() {
     // world.anchor_x_tile = 98;
     // world.anchor_z_tile = 186;
 
-    // crete
+    // Crete
     // world.anchor_x_tile = 292;
     // world.anchor_z_tile = 202;
 
 
+    // Adjust to fit your scene
+    rendering.skirt_drop = 1000.0f;
     world.skirt_overlap = {
         {9, 1.01f},
         {10, 1.01f},
@@ -98,14 +100,12 @@ int main() {
         {14, 1.01f},
         {15, 1.01f}
     };
-    rendering.skirt_drop = 1000.0f;
-    // rendering.height_scale = 1.5f;
-    // rendering.fog_start = 40000.0f;
+
 
 
     raytiles::streamer streamer(world, streaming, rendering, pool_conf);
     raytiles::renderer &r = streamer.get_renderer();
-    r.set_normals_scale(5.0f);
+    // r.set_normals_scale(5.0f);
 
     Camera3D camera;
     camera.position = Vector3{2000.0f, 5000.0f, 2000.0f};
@@ -116,12 +116,12 @@ int main() {
 
     FreeCamera f(camera);
 
-    // Model x_wing = LoadModel("res/x-wing/scene.gltf");
-    Model x_wing = LoadModel("res/tie/scene.gltf");
-    x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
+    Model x_wing = LoadModel("res/x-wing/scene.gltf");
+    Model tie = LoadModel("res/tie/scene.gltf");
+    // x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
 
     r.set_fog_color(SKYBLUE);
-    r.set_ambient_light(Color{200, 200, 200, 255});
+    // r.set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
     bool wireframe = true;
     bool labels = true;
@@ -200,15 +200,15 @@ int main() {
         const Vector3 model_pos = Vector3Add(camera.position, Vector3Scale(forward, 50.0f));
 
         DrawModelEx(x_wing, model_pos, rotationAxis, angle, {2.0f, 2.0f, 2.0f}, WHITE);
-        if (wireframe) {
-            streamer.debug_3d();
-        }
+        // if (wireframe) {
+        //     streamer.debug_3d();
+        // }
         EndMode3D();
 
-        if (labels) {
-            DrawRectangle(5, 5, 400, 100, Fade(BLACK, 0.5f));
-            streamer.debug(camera);
-        }
+        // if (labels) {
+        //     DrawRectangle(5, 5, 400, 100, Fade(BLACK, 0.5f));
+        //     streamer.debug(camera);
+        // }
 
         // DrawRectangle(5, 550, 600, 40, Fade(BLACK, 0.5f));
         // DrawText("Controls: K to toggle labels, L to toggle wireframe", 10, 560, 20, WHITE);
