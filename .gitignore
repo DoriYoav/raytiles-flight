@@ -3,6 +3,8 @@
 /cmake-build-release
 /cmake-build-web
 /cmake-build-web-release
+/cmake-build-binding
+/build_bindings
 /assets
 /tmp
 .DS_Store
