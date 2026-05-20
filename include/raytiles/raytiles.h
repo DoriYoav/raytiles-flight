@@ -10,9 +10,6 @@
 #include <unordered_set>
 
 #include "raylib.h"
-#include "detail/raii.hpp"
-#include "detail/tile.hpp"
-#include "detail/utils.hpp"
 
 #ifndef RAYTILES_TEXTURE_URL
 // the order zoom/y/x is not a mistake, that is the way Esri encoded their URLs
@@ -27,8 +24,68 @@
 #define RAYTILES_NORMALS_URL "https://s3.amazonaws.com/elevation-tiles-prod/normal/:zoom:/:x:/:y:.png"
 #endif
 
+namespace raytiles {
+    using Zoom = int;
+    using Meters = float;
+    using MetersD = double;
+    using MetersSq = double;
+
+    /// A single plane in world space, used for frustum culling. `normal` points
+    /// into the volume the plane bounds; `distance` is the plane's offset from
+    /// origin along that normal.
+    struct Plane {
+        Vector3 normal;
+        Meters distance;
+    };
+
+    /// Six-plane view frustum (left/right/bottom/top/near/far).
+    struct Frustum {
+        Plane planes[6];
+    };
+
+    /// Configuration for the background tile download pool. Passed by value to
+    /// the `streamer` constructor.
+    struct pool_config {
+        /// Number of background download workers. Downloads are I/O-bound so it's
+        /// safe to use more threads than CPU cores; 2 is a reasonable default for
+        /// HTTP keep-alive against a single host.
+        int download_threads = 4;
+
+        /// Skip TLS certificate verification for tile downloads. Only useful for
+        /// local proxies; never enable against a real server.
+        bool allow_insecure_tls = false;
+
+        /// Whether the pool's worker threads emit log lines.
+        bool use_logger = false;
+
+        /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
+        /// `std::vformat`. Parent directories are created on demand.
+        std::string texture_cache_path = "assets/texture/{}/{}/{}.png";
+        std::string heightmap_cache_path = "assets/heightmap/{}/{}/{}.png";
+        std::string normals_cache_path = "assets/normals/{}/{}/{}.png";
+
+        /// Provider URL templates. The full request URL is constructed from
+        /// `{zoom}/{x}/{z}` (plus any optional token in the template). Any
+        /// provider following the XYZ (slippy-map) convention works, as long as
+        /// the heightmap provider returns RGB-encoded heightmaps.
+        std::string texture_url = RAYTILES_TEXTURE_URL;
+        std::string texture_host{};
+        std::string texture_url_path{};
+
+        std::string heightmap_url = RAYTILES_HEIGHTMAP_URL;
+        std::string heightmap_host{};
+        std::string heightmap_url_path{};
+
+        std::string normals_url = RAYTILES_NORMALS_URL;
+        std::string normals_host{};
+        std::string normals_url_path{};
+    };
+}
 
 namespace raytiles {
+    class renderer;
+    class tiles_manager;
+
     /// World topology / geometry parameters. Everything in this struct is
     /// effectively immutable once a `streamer` exists: changing any field
     /// requires rebuilding meshes, re-uploading textures, or re-anchoring the
@@ -59,6 +116,7 @@ namespace raytiles {
 
         /// Per-zoom skirt overlap factors, allowing you to tweak the amount of overlap
         /// (and thus fill rate) at different zoom levels. Baked into generated meshes.
+        /// todo replace with std::array for maximum speed access (index = Zoom - base_zoom)
         std::unordered_map<Zoom, float> skirt_overlap = {
             {9, 1.00f},
             {10, 1.00f},
@@ -91,6 +149,7 @@ namespace raytiles {
         /// through `world_config::max_zoom`). Tuned for performance and to keep
         /// the resident tile count under 600. If the zoom range changes, this
         /// map must be updated to match.
+        /// todo replace with std::array for maximum speed access (index = Zoom - base_zoom)
         std::unordered_map<Zoom, Meters> thresholds = {
             {9, 100000.0f},
             {10, 80000.0f},
@@ -170,140 +229,6 @@ namespace raytiles {
         float normals_scale = 1.0f;
     };
 
-    struct pool_config {
-        /// Number of background download workers. Downloads are I/O-bound so it's
-        /// safe to use more threads than CPU cores; 2 is a reasonable default for
-        /// HTTP keep-alive against a single host.
-        int download_threads = 4;
-
-        /// Skip TLS certificate verification for tile downloads. Only useful for
-        /// local proxies; never enable against a real server.
-        bool allow_insecure_tls = false;
-
-        /// Whether the pool's worker threads emit log lines.
-        bool use_logger = false;
-
-        /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
-        /// `std::vformat`. Parent directories are created on demand.
-        std::string texture_cache_path = "assets/texture/{}/{}/{}.png";
-        std::string heightmap_cache_path = "assets/heightmap/{}/{}/{}.png";
-        std::string normals_cache_path = "assets/normals/{}/{}/{}.png";
-
-        /// Provider URL templates. The full request URL is constructed from
-        /// `{zoom}/{x}/{z}` (plus any optional token in the template). Any
-        /// provider following the XYZ (slippy-map) convention works, as long as
-        /// the heightmap provider returns RGB-encoded heightmaps.
-        std::string texture_url = RAYTILES_TEXTURE_URL;
-        std::string texture_host{};
-        std::string texture_url_path{};
-
-        std::string heightmap_url = RAYTILES_HEIGHTMAP_URL;
-        std::string heightmap_host{};
-        std::string heightmap_url_path{};
-
-        std::string normals_url = RAYTILES_NORMALS_URL;
-        std::string normals_host{};
-        std::string normals_url_path{};
-    };
-
-    // forward-declared so the public header doesn't drag httplib in via
-    // downloader.hpp. defined in src/downloader.hpp.
-    class pool;
-
-    class renderer {
-    public:
-        explicit renderer(const rendering_config &conf);
-
-        int draw(const Vector3 &position, const DebugView &draw_view);
-
-        /// Draws a 2D HUD with streamer statistics (loaded / loading counts, etc.)
-        /// and zoom labels above the tiles
-        /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
-        static void debug(const Camera3D &camera, const DebugView &draw_view);
-
-        /// Draws 3D debug overlays (tile bounds). Call inside the same
-        /// `BeginMode3D` / `EndMode3D` block as `draw`.
-        static void debug_3d(const DebugView &draw_view);
-
-        /// Sets the ambient light color sent to the displacement shader. Use this
-        /// to drive day / night / weather lighting changes.
-        void set_ambient_light(Color color);
-
-        /// Sets the ambient light color sent to the displacement shader. Use this
-        /// to drive day / night / weather lighting changes.
-        void set_ambient_light(Vector4 color);
-
-        /// Sets the ambient light color sent to the displacement shader. Use this
-        /// to drive day / night / weather lighting changes.
-        void set_ambient_light(float r, float g, float b, float a);
-
-        /// Sets the fog color for distance attenuation. Match this to your sky
-        /// color for a seamless horizon.
-        void set_fog_color(Color color);
-
-        /// Sets the fog color for distance attenuation. Match this to your sky
-        /// color for a seamless horizon.
-        void set_fog_color(Vector4 color);
-
-        /// Sets the fog color for distance attenuation. Match this to your sky
-        /// color for a seamless horizon.
-        void set_fog_color(float r, float g, float b, float a);
-
-        /// Sets the fog start distance — the distance from the camera at which
-        /// colors begin to blend with the fog.
-        void set_fog_start(float distance);
-
-        /// Sets the fog end distance — the distance from the camera at which
-        /// colors are fully blended with the fog color.
-        void set_fog_end(float distance);
-
-        /// Sets the heightmap scale factor, which exaggerates or flattens the
-        /// terrain relief (drama factor).
-        void set_height_scale(float scale);
-
-        /// Sets the normals scale factor to increase or reduce lighting contrast.
-        void set_normals_scale(float scale);
-
-        /// Sets the sun direction vector used by the displacement shader's
-        /// lighting calculations.
-        void set_sun_direction(Vector3 direction);
-
-        /// Sets the sun lighting intensity, which controls the contrast between
-        /// lit and shaded areas.
-        void set_sun_scale(float scale);
-
-    private:
-        struct DrawEntry {
-            float dist_sq; // squared XZ distance from camera, used as sort key
-            const tile_key *key; // non-owning, points into draw_view.rendering_tiles
-            const loaded_tile *tile; // non-owning, same
-            const tile_value *tv; // non-owning, points into draw_view.tiles
-        };
-
-        void update_shader_uniforms();
-
-        std::vector<DrawEntry> draw_order_{};
-        rendering_config rendering;
-
-        raii::shader displacement_shader;
-        raii::material material{};
-
-        // shaders slots locations
-        int cam_pos_loc = -1;
-        int ambient_loc = -1;
-        int fog_color_loc = -1;
-        int tex_albedo_loc = -1;
-        int tex_height_loc = -1;
-        int tex_normal_loc = -1;
-        int sun_dir_loc = -1;
-        int sun_scale_loc = -1;
-        int height_scale_loc = -1;
-        int normal_scale_loc = -1;
-        int fog_start_loc = -1;
-        int fog_end_loc = -1;
-        int skirt_drop = -1;
-    };
-
     /// Per-frame driver that maintains the working set of tiles around a camera
     /// and renders them. One streamer manages one world; create more if you need
     /// independent worlds.
@@ -345,6 +270,8 @@ namespace raytiles {
 
         streamer(streamer &&) noexcept;
 
+        streamer &operator=(streamer &&) noexcept;
+
         /// Updates the desired tile set based on the camera and promotes any
         /// finished downloads into renderable GPU resources. Cheap to call every
         /// frame; internally rate-limited by `streaming_config::upload_budget_sec`
@@ -354,18 +281,6 @@ namespace raytiles {
         /// Renders all currently loaded tiles in view. Must be called between
         /// `BeginMode3D` / `EndMode3D` with the same camera passed to `update`.
         void draw(const Camera3D &camera);
-
-        /// Draws zoom labels above the tiles.
-        /// Call between `BeginDrawing` / `EndDrawing`, after `EndMode3D`.
-        void debug(const Camera3D &camera);
-
-        /// Draws 3D tile bounds. Call inside the same
-        /// `BeginMode3D` / `EndMode3D` block as `draw`.
-        void debug_3d();
-
-        /// Returns the underlying renderer instance for direct access
-        /// to shader parameters.
-        renderer &get_renderer();
 
         /// Return true for initial loading only
         [[nodiscard]] bool is_loading() const;
@@ -382,52 +297,66 @@ namespace raytiles {
         ///       so this query is a direct pixel read; cost is O(1).
         [[nodiscard]] std::optional<float> ground_height(Vector3 position) const;
 
+        /// @name Shader parameter setters
+        /// Forwarded onto the internal renderer; safe to call any time after
+        /// construction. Take effect on the next `update()`.
+        /// @{
+
+        /// Sets the ambient light color sent to the displacement shader. Use this
+        /// to drive day / night / weather lighting changes.
+        void set_ambient_light(Color color);
+
+        void set_ambient_light(Vector4 color);
+
+        void set_ambient_light(float r, float g, float b, float a);
+
+        /// Sets the fog color for distance attenuation. Match this to your sky
+        /// color for a seamless horizon.
+        void set_fog_color(Color color);
+
+        void set_fog_color(Vector4 color);
+
+        void set_fog_color(float r, float g, float b, float a);
+
+        /// Sets the fog start distance — the distance from the camera at which
+        /// colors begin to blend with the fog.
+        void set_fog_start(float distance);
+
+        /// Sets the fog end distance — the distance from the camera at which
+        /// colors are fully blended with the fog color.
+        void set_fog_end(float distance);
+
+        /// Sets the heightmap scale factor, which exaggerates or flattens the
+        /// terrain relief (drama factor).
+        void set_height_scale(float scale);
+
+        /// Sets the normals scale factor to increase or reduce lighting contrast.
+        void set_normals_scale(float scale);
+
+        /// Sets the sun direction vector used by the displacement shader's
+        /// lighting calculations.
+        void set_sun_direction(Vector3 direction);
+
+        /// Sets the sun lighting intensity, which controls the contrast between
+        /// lit and shaded areas.
+        void set_sun_scale(float scale);
+
+        /// @}
+
     private:
-        void build_required(Zoom zoom, int tx, int tz, float render_radius_sq);
-
-        void process_loaded_tiles();
-
-        void process_current_location();
-
-        void remove_unused_tiles();
-
-        [[nodiscard]] loading_tile spawn(const tile_key &tile) const;
-
-        [[nodiscard]] MetersSq calculate_horizon() const;
-
-        [[nodiscard]] bool is_tile_covered(const tile_key &key) const;
-
-        [[nodiscard]] bool is_tile_out_of_area(const tile_key &key) const;
-
-        // configuration
-        // double near_plane;
-        // double far_plane;
-        world_config world;
+        // streamer keeps only the streaming-policy bits it actually uses
+        // (update gating, near/far for frustum extraction). All tile
+        // lifecycle state lives in `tile_manager`.
         streaming_config streaming;
 
-        // exposed in the public header (part of the API)
-        renderer tile_renderer;
-        // held by unique_ptr so the public header can forward-declare `pool`
-        // and keep httplib out of every consumer's translation unit.
-        std::unique_ptr<pool> tile_downloader;
+        std::unique_ptr<renderer> tile_renderer;
+        std::unique_ptr<tiles_manager> tile_manager;
 
-        // internal cache
-        bool loading = true;
         int rendered = 0;
 
         // update every frame
         Vector3 last_position = {-9999.9f, -9999.9f, -9999.9f};
         Frustum last_frustum{};
-
-        // desired_keys is updated under condition
-        // the maps auto built/evicted every frame
-        std::unordered_set<tile_key> desired_keys;
-        std::unordered_map<tile_key, loading_tile> loading_tiles;
-        std::unordered_map<tile_key, loaded_tile> rendering_tiles;
-
-        // metadata about tiles by their zoom
-        // todo replace with fixed size array of std::array, there is a lot of acess to this map
-        std::unordered_map<Zoom, tile_value> tiles;
     };
 } // namespace raytiles
 

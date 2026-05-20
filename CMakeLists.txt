@@ -31,14 +31,20 @@ endif ()
 add_library(${PROJECT_NAME}
         include/raytiles/raytiles.h
         include/raytiles/craytiles.h
-        include/raytiles/detail/raii.hpp
-        include/raytiles/detail/tile.hpp
-        include/raytiles/detail/utils.hpp
+        src/detail/raii.hpp
+        src/detail/tile.hpp
+        src/detail/utils.hpp
         src/raytiles.cpp
         src/craytiles.cpp
         src/renderer.cpp
-        src/downloader.hpp
+        src/detail/renderer.h
+        src/detail/downloader.h
+        src/downloader.cpp
         src/shaders.hpp
+        src/tile_shader.cpp
+        src/detail/tile_shader.h
+        src/tiles_manager.cpp
+        src/detail/tiles_manager.h
 )
 
 target_include_directories(${PROJECT_NAME}
