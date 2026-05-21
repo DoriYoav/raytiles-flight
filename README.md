@@ -2,10 +2,12 @@
 
 <div align="center">
     <img src="res/logo.png" alt="logo" width="300"/>
+    <br />
+    3D eospatial engine for raylib
 </div>
 
-**Raytiles** is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the real
-world in real time, it lets you visualize any location on Earth directly inside your raylib applications.
+**Raytiles**, a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/), designed to stream and render the real
+world in real time. It lets you visualize any location on Earth directly inside your raylib applications.
 
 Built for indie developers and professionals alike, Raytiles is a perfect fit for UAV simulations, flight-planning
 software,
@@ -41,10 +43,9 @@ open an issue!
 - **Cross-platform** builds for Windows, Linux, and macOS
 - **Open source** and permissively licensed (MIT)
 
-
 ## Content
 
-<img align="right" width="200" src="https://private-user-images.githubusercontent.com/195479/593582600-bd97c803-9f6c-4670-9687-d73dcb8937d2.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzkxOTk3NDUsIm5iZiI6MTc3OTE5OTQ0NSwicGF0aCI6Ii8xOTU0NzkvNTkzNTgyNjAwLWJkOTdjODAzLTlmNmMtNDY3MC05Njg3LWQ3M2RjYjg5MzdkMi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNTE5JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDUxOVQxNDA0MDVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0zOWE4MzVlNTAxYTZkNDE5ZDE4YTM4ZDAyOTE0YTc1MWM4M2NiNzJhODUwZGIzMmY0NzA4MzM5YTNkNTgzNzczJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.1p80IwWyQqD_jy8yPGIUwrG8gUgYpofYVJGXBTnw1V0" />
+<img align="right" width="256" src="https://private-user-images.githubusercontent.com/195479/593582600-bd97c803-9f6c-4670-9687-d73dcb8937d2.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NzkxOTk3NDUsIm5iZiI6MTc3OTE5OTQ0NSwicGF0aCI6Ii8xOTU0NzkvNTkzNTgyNjAwLWJkOTdjODAzLTlmNmMtNDY3MC05Njg3LWQ3M2RjYjg5MzdkMi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYwNTE5JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MDUxOVQxNDA0MDVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0zOWE4MzVlNTAxYTZkNDE5ZDE4YTM4ZDAyOTE0YTc1MWM4M2NiNzJhODUwZGIzMmY0NzA4MzM5YTNkNTgzNzczJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.1p80IwWyQqD_jy8yPGIUwrG8gUgYpofYVJGXBTnw1V0" />
 
 - [Quick Start](https://github.com/ziv/raytiles/wiki/Quick-Start)
 - [Anchors](https://github.com/ziv/raytiles/wiki/Anchors)
