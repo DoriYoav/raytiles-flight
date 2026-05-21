@@ -3,10 +3,11 @@
 <div align="center">
     <img src="res/logo.png" alt="logo" width="300"/>
     <br />
-    3D eospatial engine for raylib
+    <strong>3D geospatial engine for raylib</strong>
+    <br />
 </div>
 
-**Raytiles**, a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/), designed to stream and render the real
+**Raytiles** is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the real
 world in real time. It lets you visualize any location on Earth directly inside your raylib applications.
 
 Built for indie developers and professionals alike, Raytiles is a perfect fit for UAV simulations, flight-planning
