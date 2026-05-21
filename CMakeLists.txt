@@ -14,17 +14,21 @@ endif ()
 include(FetchContent)
 
 if (NOT TARGET raylib)
-    # set(SUPPORT_FILEFORMAT_JPG ON CACHE BOOL "" FORCE)
-    add_compile_definitions(SUPPORT_FILEFORMAT_JPG)
-    FetchContent_Declare(
-            raylib
-            GIT_REPOSITORY https://github.com/raysan5/raylib.git
-            GIT_TAG 6.0
-            GIT_SHALLOW TRUE
-    )
-    FetchContent_MakeAvailable(raylib)
-    if (TARGET raylib)
-        set_target_properties(raylib PROPERTIES SYSTEM TRUE)
+    if (PROJECT_IS_TOP_LEVEL)
+        # set(SUPPORT_FILEFORMAT_JPG ON CACHE BOOL "" FORCE)
+        add_compile_definitions(SUPPORT_FILEFORMAT_JPG)
+        FetchContent_Declare(
+                raylib
+                GIT_REPOSITORY https://github.com/raysan5/raylib.git
+                GIT_TAG 6.0
+                GIT_SHALLOW TRUE
+        )
+        FetchContent_MakeAvailable(raylib)
+        if (TARGET raylib)
+            set_target_properties(raylib PROPERTIES SYSTEM TRUE)
+        endif ()
+    else ()
+        find_package(raylib 6.0 REQUIRED)
     endif ()
 endif ()
 
@@ -57,7 +61,8 @@ target_include_directories(${PROJECT_NAME}
 
 if (RAYTILES_BINDINGS_MODE)
     # in bindings mode, we don't link raylib at all! We just need its headers for compilation.
-    target_include_directories(${PROJECT_NAME} PRIVATE ${raylib_SOURCE_DIR}/src)
+    # target_include_directories(${PROJECT_NAME} PRIVATE ${raylib_SOURCE_DIR}/src)
+    target_include_directories(${PROJECT_NAME} PRIVATE $<TARGET_PROPERTY:raylib,INTERFACE_INCLUDE_DIRECTORIES>)
 
     # tell the linker to allow undefined symbols (i.e. raylib functions) since we won't be linking
     # raylib directly in this mode. The actual binding code will load raylib dynamically at runtime.
