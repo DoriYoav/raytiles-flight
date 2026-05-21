@@ -181,14 +181,14 @@ void RaytilesStreamerDestroy(RaytilesStreamer *streamer) {
     delete streamer;
 }
 
-void RaytilesStreamerUpdate(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerUpdate(RaytilesStreamer *streamer, const Camera3D camera, const Vector3 worldOffset) {
     if (!streamer) return;
-    streamer->impl.update(camera);
+    streamer->impl.update(camera, worldOffset);
 }
 
-void RaytilesStreamerDraw(RaytilesStreamer *streamer, const Camera3D camera) {
+void RaytilesStreamerDraw(RaytilesStreamer *streamer) {
     if (!streamer) return;
-    streamer->impl.draw(camera);
+    streamer->impl.draw();
 }
 
 bool RaytilesStreamerIsLoading(const RaytilesStreamer *streamer) {
