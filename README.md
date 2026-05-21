@@ -1,12 +1,7 @@
 # Raytiles
 
-<div align="center">
-    <img src="res/logo.png" alt="logo" width="300"/>
-    <br />
-    <strong>3D geospatial engine for raylib</strong>
-    <br />
-    <br />
-</div>
+
+<img src="res/logo.png" alt="logo" width="300" align="right"/>
 
 **Raytiles** is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the real
 world in real time. It lets you visualize any location on Earth directly inside your raylib applications.
