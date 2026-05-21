@@ -1,10 +1,26 @@
 # Raytiles
 
-
-<img src="res/logo.png" alt="logo" width="300" align="right"/>
+<div align="center">
+    <img src="res/logo.png" alt="logo" width="300"/>
+    <br />
+    <strong>3D geospatial engine for raylib</strong>
+    <br />
+    <br />
+</div>
 
 **Raytiles** is a 3D geospatial engine 🌎 for [raylib](https://www.raylib.com/). Designed to stream and render the real
 world in real time. It lets you visualize any location on Earth directly inside your raylib applications.
+
+
+![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
+![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
+
+[![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
+[![Linux Build](https://github.com/ziv/raytiles/actions/workflows/linux.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/linux.yml)
+[![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
+[![Emscripten Build](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml)
+
+## Overview
 
 Built for indie developers and professionals alike, Raytiles is a perfect fit for UAV simulations, flight-planning
 software,
@@ -19,14 +35,6 @@ can be embedded seamlessly into any raylib project.
 
 🙋 Have a question or want to contribute⁉️ Use the [GitHub Discussions](https://github.com/ziv/raytiles/discussions) or
 open an issue!
-
-![GitHub Release](https://img.shields.io/github/v/release/ziv/raytiles)
-![GitHub License](https://img.shields.io/github/license/ziv/raytiles)
-
-[![macOS Build](https://github.com/ziv/raytiles/actions/workflows/macos.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/macos.yml)
-[![Linux Build](https://github.com/ziv/raytiles/actions/workflows/linux.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/linux.yml)
-[![Windows Build](https://github.com/ziv/raytiles/actions/workflows/windows.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/windows.yml)
-[![Emscripten Build](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml/badge.svg)](https://github.com/ziv/raytiles/actions/workflows/emscripten.yml)
 
 ## Features
 
