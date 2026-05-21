@@ -148,13 +148,6 @@ namespace raytiles {
         }
     } // namespace
 
-    void pool::log_line(const std::string_view level, const std::string_view msg) {
-        static std::mutex log_mtx;
-        std::lock_guard lock(log_mtx);
-        std::fprintf(stderr, "[%.*s] %.*s\n", static_cast<int>(level.size()), level.data(), static_cast<int>(msg.size()), msg.data());
-        std::fflush(stderr);
-    }
-
     std::string pool::get_host(const request_type type) const {
         return type == TEXTURE ? options.texture_host : type == HEIGHTMAP ? options.heightmap_host : options.normals_host;
     }
@@ -198,7 +191,6 @@ namespace raytiles {
 
                 if (std::filesystem::exists(img_job.path)) {
                     bytes = read_file(img_job.path);
-                    log_line("DEBUG", std::format("tile loaded from cache: {}", img_job.path));
                 } else {
                     auto host = get_host(img_job.type);
 #ifdef __EMSCRIPTEN__
@@ -209,9 +201,7 @@ namespace raytiles {
                     auto body = fetch(clients.at(host), img_job.url);
 #endif
 
-                    log_line("DEBUG", std::format("tile downloaded: {} ", img_job.path));
                     write_atomic(img_job.path, body);
-                    log_line("DEBUG", std::format("tile cached: {} ", img_job.path));
                     bytes = std::move(body);
                 }
 
