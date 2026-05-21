@@ -76,9 +76,9 @@ namespace raytiles {
 
         /// On-disk cache path templates, formatted with `{zoom}/{x}/{z}` via
         /// `std::vformat`. Parent directories are created on demand.
-        std::string texture_cache_path = "assets/texture/{}/{}/{}.png";
-        std::string heightmap_cache_path = "assets/heightmap/{}/{}/{}.png";
-        std::string normals_cache_path = "assets/normals/{}/{}/{}.png";
+        std::string texture_cache_path = ".cache/texture/{}/{}/{}.png";
+        std::string heightmap_cache_path = ".cache/heightmap/{}/{}/{}.png";
+        std::string normals_cache_path = ".cache/normals/{}/{}/{}.png";
 
         /// Provider URL templates. The full request URL is constructed from
         /// `{zoom}/{x}/{z}` (plus any optional token in the template). Any
@@ -96,11 +96,6 @@ namespace raytiles {
         std::string normals_host{};
         std::string normals_url_path{};
     };
-}
-
-namespace raytiles {
-    class renderer;
-    class tiles_manager;
 
     /// World topology / geometry parameters. Everything in this struct is
     /// effectively immutable once a `streamer` exists: changing any field
@@ -235,6 +230,9 @@ namespace raytiles {
         float normals_scale = 1.0f;
     };
 
+    class tiles_renderer;
+    class tiles_manager;
+
     /// Per-frame driver that maintains the working set of tiles around a camera
     /// and renders them. One streamer manages one world; create more if you need
     /// independent worlds.
@@ -310,42 +308,42 @@ namespace raytiles {
 
         /// Sets the ambient light color sent to the displacement shader. Use this
         /// to drive day / night / weather lighting changes.
-        void set_ambient_light(Color color);
+        void set_ambient_light(Color color) const;
 
-        void set_ambient_light(Vector4 color);
+        void set_ambient_light(Vector4 color) const;
 
-        void set_ambient_light(float r, float g, float b, float a);
+        void set_ambient_light(float r, float g, float b, float a) const;
 
         /// Sets the fog color for distance attenuation. Match this to your sky
         /// color for a seamless horizon.
-        void set_fog_color(Color color);
+        void set_fog_color(Color color) const;
 
-        void set_fog_color(Vector4 color);
+        void set_fog_color(Vector4 color) const;
 
-        void set_fog_color(float r, float g, float b, float a);
+        void set_fog_color(float r, float g, float b, float a) const;
 
         /// Sets the fog start distance — the distance from the camera at which
         /// colors begin to blend with the fog.
-        void set_fog_start(float distance);
+        void set_fog_start(float distance) const;
 
         /// Sets the fog end distance — the distance from the camera at which
         /// colors are fully blended with the fog color.
-        void set_fog_end(float distance);
+        void set_fog_end(float distance) const;
 
         /// Sets the heightmap scale factor, which exaggerates or flattens the
         /// terrain relief (drama factor).
-        void set_height_scale(float scale);
+        void set_height_scale(float scale) const;
 
         /// Sets the normals scale factor to increase or reduce lighting contrast.
-        void set_normals_scale(float scale);
+        void set_normals_scale(float scale) const;
 
         /// Sets the sun direction vector used by the displacement shader's
         /// lighting calculations.
-        void set_sun_direction(Vector3 direction);
+        void set_sun_direction(Vector3 direction) const;
 
         /// Sets the sun lighting intensity, which controls the contrast between
         /// lit and shaded areas.
-        void set_sun_scale(float scale);
+        void set_sun_scale(float scale) const;
 
         /// @}
 
@@ -355,7 +353,7 @@ namespace raytiles {
         // lifecycle state lives in `tile_manager`.
         streaming_config streaming;
 
-        std::unique_ptr<renderer> tile_renderer;
+        std::unique_ptr<tiles_renderer> tile_renderer;
         std::unique_ptr<tiles_manager> tile_manager;
 
         int rendered = 0;
