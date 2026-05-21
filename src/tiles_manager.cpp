@@ -9,10 +9,9 @@
 using namespace std::chrono_literals;
 
 namespace raytiles {
-
-    tiles_manager::tiles_manager(tiles_manager_options opts, pool_config pool_conf)
+    tiles_manager::tiles_manager(tiles_manager_options opts, pool_options pool_opts)
         : options(std::move(opts)),
-          tile_downloader(std::move(pool_conf)) {
+          tile_downloader(std::move(pool_opts)) {
         // input validation
         if (options.base_zoom < min_supported_zoom) {
             throw std::runtime_error(std::format("base_zoom {} is below min_supported_zoom {}", options.base_zoom, min_supported_zoom));
@@ -143,8 +142,8 @@ namespace raytiles {
         }
     }
 
-    DebugView tiles_manager::make_debug_view(Frustum &frustum) {
-        return DebugView{frustum, rendering_tiles, tiles, desired_keys};
+    DataView tiles_manager::make_debug_view(Frustum &frustum) {
+        return DataView{frustum, rendering_tiles, tiles, desired_keys};
     }
 
     void tiles_manager::process_loaded_tiles() {
@@ -269,7 +268,7 @@ namespace raytiles {
         const auto tile = &tiles[zoom];
 
         // calculate distance of the tile from the camera
-        const MetersSq distance_sq = utils::distance_sq_to_tile(position, {zoom, tx, tz}, tile->size);
+        const MetersDSq distance_sq = utils::distance_sq_to_tile(position, {zoom, tx, tz}, tile->size);
 
         // not in the area we render at all
         if (distance_sq > render_radius_sq) {
@@ -310,7 +309,7 @@ namespace raytiles {
 
     bool tiles_manager::is_tile_out_of_area(const tile_key &key, const Vector3 &position) const {
         const auto &t = tiles.at(key.zoom);
-        const MetersSq distance_sq = utils::distance_sq_to_tile_xz(position, key, t.size);
+        const MetersDSq distance_sq = utils::distance_sq_to_tile_xz(position, key, t.size);
         return distance_sq > utils::calculate_horizon(position);
     }
 

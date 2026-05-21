@@ -13,7 +13,7 @@ namespace raytiles {
     constexpr int min_resolution = 4;
     constexpr int max_resolution = 256;
 
-    struct DebugView {
+    struct DataView {
         Frustum &frustum;
         std::unordered_map<tile_key, loaded_tile> &rendering_tiles;
         std::unordered_map<Zoom, tile_value> &tiles;
@@ -29,11 +29,11 @@ namespace raytiles::utils {
     /// d ≈ 3.57 * sqrt(h)
     /// d ≈ horizon_ratio * sqrt(h)
     /// where R is Earth radius, h is height above Earth, and d is distance to horizon in Km.
-    constexpr MetersSq horizon_ratio = 3.57f * 1000.0f; // convert to meters
+    constexpr MetersDSq horizon_ratio = 3.57f * 1000.0f; // convert to meters
 
     /// Calculates the squared distance from a position to the center of a tile.
     /// Tile position is determined by its x and z indices and the tile size at the given zoom level.
-    inline MetersSq distance_sq_to_tile(const Vector3 &position, const tile_key &tile, const float tile_size) {
+    inline MetersDSq distance_sq_to_tile(const Vector3 &position, const tile_key &tile, const float tile_size) {
         const float world_x = (static_cast<float>(tile.x) + 0.5f) * tile_size;
         const float world_z = (static_cast<float>(tile.z) + 0.5f) * tile_size;
         const float dx = position.x - world_x;
@@ -44,7 +44,7 @@ namespace raytiles::utils {
     }
 
     /// Calculate the distance from a position to center of a tile on XZ plane
-    inline MetersSq distance_sq_to_tile_xz(const Vector3 &position, const tile_key &tile, const float tile_size) {
+    inline MetersDSq distance_sq_to_tile_xz(const Vector3 &position, const tile_key &tile, const float tile_size) {
         const float world_x = (static_cast<float>(tile.x) + 0.5f) * tile_size;
         const float world_z = (static_cast<float>(tile.z) + 0.5f) * tile_size;
         const float dx = position.x - world_x;
@@ -55,10 +55,10 @@ namespace raytiles::utils {
 
     /// Calculates the distance from a position to the center of a tile.
     inline Meters distance_to_tile(const Vector3 &position, const tile_key &tile, const float tile_size) {
-        return std::sqrt(distance_sq_to_tile(position, tile, tile_size));
+        return std::sqrt(static_cast<float>(distance_sq_to_tile(position, tile, tile_size)));
     }
 
-    inline MetersSq calculate_horizon(const Vector3 &position) {
+    inline MetersDSq calculate_horizon(const Vector3 &position) {
         const auto d = horizon_ratio * std::max(position.y, 1.0f);
         return d * d;
     }
@@ -141,7 +141,7 @@ namespace raytiles::utils {
         frustum.planes[5].distance = m15 - m14;
 
         // normalize all
-        for (int i = 0; i < 6; i++) normalize_plane(frustum.planes[i]);
+        for (auto &plane: frustum.planes) normalize_plane(plane);
         return frustum;
     }
 
@@ -151,18 +151,18 @@ namespace raytiles::utils {
         const Vector3 min = {x - s, 0.0f, z - s};
         const Vector3 max = {x + s, max_world_height, z + s};
 
-        for (int i = 0; i < 6; i++) {
+        for (const auto [normal, distance]: frustum.planes) {
             Vector3 p;
-            p.x = frustum.planes[i].normal.x > 0 ? max.x : min.x;
-            p.y = frustum.planes[i].normal.y > 0 ? max.y : min.y;
-            p.z = frustum.planes[i].normal.z > 0 ? max.z : min.z;
+            p.x = normal.x > 0 ? max.x : min.x;
+            p.y = normal.y > 0 ? max.y : min.y;
+            p.z = normal.z > 0 ? max.z : min.z;
 
-            const float distance = frustum.planes[i].normal.x * p.x +
-                                   frustum.planes[i].normal.y * p.y +
-                                   frustum.planes[i].normal.z * p.z +
-                                   frustum.planes[i].distance;
+            const float d = normal.x * p.x +
+                            normal.y * p.y +
+                            normal.z * p.z +
+                            distance;
 
-            if (distance < 0) return false;
+            if (d < 0) return false;
         }
         return true; // should render
     }

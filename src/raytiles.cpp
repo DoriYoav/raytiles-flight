@@ -18,6 +18,16 @@
 
 namespace raytiles {
     namespace {
+        std::pair<std::string, std::string> split_url(const std::string &url) {
+            const auto scheme = url.find("://");
+            if (scheme == std::string::npos) throw std::runtime_error("invalid url (no scheme): " + url);
+
+            const auto path_pos = url.find('/', scheme + 3);
+            if (path_pos == std::string::npos) return {url, "/"};
+
+            return {url.substr(0, path_pos), url.substr(path_pos)};
+        }
+
         // Translates the streamer's public config triplet into the
         // tiles_manager's own option struct. Mirrors `make_shader_options`
         // in renderer.cpp.
@@ -38,17 +48,39 @@ namespace raytiles {
                 .skirt_overlap = world.skirt_overlap,
             };
         }
+
+        pool_options make_pool_options(const pool_config &pool_conf) {
+            auto [texture_host, texture_url_path] = split_url(pool_conf.texture_url);
+            auto [heightmap_host, heightmap_url_path] = split_url(pool_conf.heightmap_url);
+            auto [normals_host, normals_url_path] = split_url(pool_conf.normals_url);
+            return pool_options{
+                .download_threads = pool_conf.download_threads,
+                .allow_insecure_tls = pool_conf.allow_insecure_tls,
+                .texture_cache_path = pool_conf.texture_cache_path,
+                .heightmap_cache_path = pool_conf.heightmap_cache_path,
+                .normals_cache_path = pool_conf.normals_cache_path,
+                .texture_host = std::move(texture_host),
+                .texture_url_path = std::move(texture_url_path),
+                .heightmap_host = std::move(heightmap_host),
+                .heightmap_url_path = std::move(heightmap_url_path),
+                .normals_host = std::move(normals_host),
+                .normals_url_path = std::move(normals_url_path),
+            };
+        }
     } // namespace
 
     streamer::streamer(world_config world_conf,
                        streaming_config streaming_conf,
                        rendering_config rendering_conf,
-                       pool_config pool_conf)
-        : streaming(std::move(streaming_conf)),
+                       const pool_config &pool_conf)
+        : near_plane(static_cast<float>(streaming_conf.near_plane)),
+          far_plane(static_cast<float>(streaming_conf.far_plane)),
+          update_distance_sq(streaming_conf.update_distance_sq),
+          // streaming(std::move(streaming_conf)),
           tile_renderer(std::make_unique<tiles_renderer>(rendering_conf)),
-          tile_manager(std::make_unique<tiles_manager>(make_tiles_manager_options(world_conf, streaming), std::move(pool_conf))) {
+          tile_manager(std::make_unique<tiles_manager>(make_tiles_manager_options(world_conf, streaming_conf), make_pool_options(pool_conf))) {
         // set the rendering distance
-        rlSetClipPlanes(streaming.near_plane, streaming.far_plane);
+        rlSetClipPlanes(streaming_conf.near_plane, streaming_conf.far_plane);
     }
 
     streamer::~streamer() = default;
@@ -70,20 +102,14 @@ namespace raytiles {
     }
 
     void streamer::update(const Camera3D &camera) {
-        const auto position = camera.position;
+        tile_manager->pre_process(camera.position);
 
-        tile_manager->pre_process(position);
-
-        if (Vector2DistanceSqr({position.x, position.z}, {last_position.x, last_position.z}) > streaming.update_distance_sq ||
-            std::fabs(position.y - last_position.y) > streaming.update_height) {
-            last_position = position;
-            tile_manager->process(position);
+        if (Vector3DistanceSqr(camera.position, last_position) > update_distance_sq) {
+            last_position = camera.position;
+            tile_manager->process(camera.position);
         }
 
-        last_frustum = utils::extract_frustum(camera,
-                                              static_cast<float>(streaming.near_plane),
-                                              static_cast<float>(streaming.far_plane)
-        );
+        last_frustum = utils::extract_frustum(camera, near_plane, far_plane);
 
         tile_manager->post_process(last_frustum);
     }

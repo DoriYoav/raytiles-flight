@@ -27,12 +27,6 @@ struct RaytilesStreamer {
     }
 };
 
-namespace {
-    std::string to_string_or_empty(const char *s) {
-        return s ? std::string(s) : std::string();
-    }
-}
-
 // ---------------------------------------------------------------------------
 //  C -> C++ struct conversion helpers
 // ---------------------------------------------------------------------------
@@ -47,7 +41,6 @@ namespace {
         w.max_zoom = c->max_zoom;
         w.base_zoom_tile_size = c->base_zoom_tile_size;
         w.use_mipmap = c->use_mipmap;
-        w.use_logger = c->use_logger;
         for (std::size_t i = 0; i < raytiles::zoom_levels; ++i) {
             w.skirt_overlap[i] = c->skirt_overlap[i];
         }
@@ -58,8 +51,7 @@ namespace {
         raytiles::streaming_config s{};
         if (!c) return s;
         s.rendering_radius = c->rendering_radius;
-        s.update_distance_sq = c->update_distance_sq;
-        s.update_height = c->update_height;
+        s.update_distance_sq = c->update_height;
         s.upload_budget_sec = c->upload_budget_sec;
         s.max_uploads_per_frame = c->max_uploads_per_frame;
         s.near_plane = c->near_plane;
@@ -90,19 +82,12 @@ namespace {
         if (!c) return p;
         p.download_threads = c->download_threads;
         p.allow_insecure_tls = c->allow_insecure_tls;
-        p.use_logger = c->use_logger;
         if (c->texture_cache_path) p.texture_cache_path = c->texture_cache_path;
         if (c->heightmap_cache_path) p.heightmap_cache_path = c->heightmap_cache_path;
         if (c->normals_cache_path) p.normals_cache_path = c->normals_cache_path;
         if (c->texture_url) p.texture_url = c->texture_url;
         if (c->heightmap_url) p.heightmap_url = c->heightmap_url;
         if (c->normals_url) p.normals_url = c->normals_url;
-        p.texture_host = to_string_or_empty(c->texture_host);
-        p.texture_url_path = to_string_or_empty(c->texture_url_path);
-        p.heightmap_host = to_string_or_empty(c->heightmap_host);
-        p.heightmap_url_path = to_string_or_empty(c->heightmap_url_path);
-        p.normals_host = to_string_or_empty(c->normals_host);
-        p.normals_url_path = to_string_or_empty(c->normals_url_path);
         return p;
     }
 }
@@ -125,7 +110,6 @@ RaytilesWorldConfig RaytilesWorldConfigDefault(void) {
         out.skirt_overlap[i] = w.skirt_overlap[i];
     }
     out.use_mipmap = w.use_mipmap;
-    out.use_logger = w.use_logger;
     return out;
 }
 
@@ -136,8 +120,7 @@ RaytilesStreamingConfig RaytilesStreamingConfigDefault(void) {
     for (std::size_t i = 0; i < raytiles::zoom_levels; ++i) {
         out.thresholds[i] = s.thresholds[i];
     }
-    out.update_distance_sq = s.update_distance_sq;
-    out.update_height = s.update_height;
+    out.update_height = s.update_distance_sq;
     out.upload_budget_sec = s.upload_budget_sec;
     out.max_uploads_per_frame = s.max_uploads_per_frame;
     out.near_plane = s.near_plane;
@@ -167,19 +150,12 @@ RaytilesPoolConfig RaytilesPoolConfigDefault(void) {
     RaytilesPoolConfig out{};
     out.download_threads = d.download_threads;
     out.allow_insecure_tls = d.allow_insecure_tls;
-    out.use_logger = d.use_logger;
     out.texture_cache_path = d.texture_cache_path.c_str();
     out.heightmap_cache_path = d.heightmap_cache_path.c_str();
     out.normals_cache_path = d.normals_cache_path.c_str();
     out.texture_url = d.texture_url.c_str();
     out.heightmap_url = d.heightmap_url.c_str();
     out.normals_url = d.normals_url.c_str();
-    out.texture_host = d.texture_host.c_str();
-    out.texture_url_path = d.texture_url_path.c_str();
-    out.heightmap_host = d.heightmap_host.c_str();
-    out.heightmap_url_path = d.heightmap_url_path.c_str();
-    out.normals_host = d.normals_host.c_str();
-    out.normals_url_path = d.normals_url_path.c_str();
     return out;
 }
 

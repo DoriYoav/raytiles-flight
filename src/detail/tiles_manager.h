@@ -75,7 +75,7 @@ namespace raytiles {
 
     class tiles_manager {
     public:
-        tiles_manager(tiles_manager_options opts, pool_config pool_conf);
+        tiles_manager(tiles_manager_options opts, pool_options pool_opts);
 
         [[nodiscard]] std::optional<float> ground_height(const Vector3 &position) const;
 
@@ -100,7 +100,7 @@ namespace raytiles {
         /// Bundles internal state into a `DebugView` for the renderer's draw /
         /// debug paths. The returned view borrows references to this manager's
         /// internal maps; do not retain it beyond the current frame.
-        [[nodiscard]] DebugView make_debug_view(Frustum &frustum);
+        [[nodiscard]] DataView make_debug_view(Frustum &frustum);
 
     private:
         void process_loaded_tiles();
