@@ -254,8 +254,8 @@ namespace raytiles {
         /// @note A raylib window must already be initialized (`InitWindow`) before
         ///       constructing a streamer because shader / texture creation requires
         ///       a live GL context.
-        explicit streamer(world_config world_conf = {},
-                          streaming_config streaming_conf = {},
+        explicit streamer(const world_config &world_conf = {},
+                          const streaming_config &streaming_conf = {},
                           rendering_config rendering_conf = {},
                           const pool_config &pool_conf = {});
 

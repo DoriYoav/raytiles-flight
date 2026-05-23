@@ -69,14 +69,13 @@ namespace raytiles {
         }
     } // namespace
 
-    streamer::streamer(world_config world_conf,
-                       streaming_config streaming_conf,
+    streamer::streamer(const world_config &world_conf,
+                       const streaming_config &streaming_conf,
                        rendering_config rendering_conf,
                        const pool_config &pool_conf)
         : near_plane(static_cast<float>(streaming_conf.near_plane)),
           far_plane(static_cast<float>(streaming_conf.far_plane)),
           update_distance_sq(streaming_conf.update_distance_sq),
-          // streaming(std::move(streaming_conf)),
           tile_renderer(std::make_unique<tiles_renderer>(rendering_conf)),
           tile_manager(std::make_unique<tiles_manager>(make_tiles_manager_options(world_conf, streaming_conf), make_pool_options(pool_conf))) {
         // set the rendering distance
