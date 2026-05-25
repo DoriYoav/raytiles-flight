@@ -59,8 +59,7 @@ namespace raytiles::utils {
     }
 
     inline MetersDSq calculate_horizon(const Vector3 &position) {
-        const auto d = horizon_ratio * std::max(position.y, 1.0f);
-        return d * d;
+        return horizon_ratio * horizon_ratio * std::max(position.y, 1.0f);
     }
 
     /// Get height from image based on https://registry.opendata.aws/terrain-tiles/
