@@ -104,18 +104,10 @@ int main() {
     raytiles::streamer streamer(world, streaming, rendering, pool_conf);
     // streamer.set_normals_scale(5.0f);
 
-    // ------- Large-world shifting state -------
-    // Convention: absolute = user - world_offset, equivalently user = absolute + world_offset.
-    // The `path[]` waypoints below are absolute coords (authored at offset = 0).
-    // We keep `camera.position` in user space (small floats) and accumulate the
-    // shift in `world_offset`. Each frame we test the user-space camera against
-    // `rebase_threshold` and, when crossed, shift the user frame back toward
-    // the origin while shifting `world_offset` by the same amount so the
-    // absolute camera (user - offset) is unchanged.
     Vector3 world_offset = {0.0f, 0.0f, 0.0f};
     constexpr float rebase_threshold = 4096.0f;
 
-    auto absolute_to_user = [&](Vector3 abs) {
+    auto absolute_to_user = [&](const Vector3 abs) {
         return Vector3Add(abs, world_offset);
     };
 
@@ -134,7 +126,7 @@ int main() {
     // x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
 
     streamer.set_fog_color(SKYBLUE);
-    // streamer.set_ambient_light(Color{200, 200, 200, 255});
+    streamer.set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
     bool wireframe = true;
     bool labels = true;
@@ -256,17 +248,17 @@ int main() {
         // DrawRectangle(5, 550, 600, 40, Fade(BLACK, 0.5f));
         // DrawText("Controls: K to toggle labels, L to toggle wireframe", 10, 560, 20, WHITE);
 
-        DrawRectangle(5, 50, 280, 80, Fade(BLACK, 0.5f));
+        DrawRectangle(5, 10, 280, 80, Fade(BLACK, 0.5f));
         DrawText(TextFormat("user P %d %d %d",
                             static_cast<int>(camera.position.x),
                             static_cast<int>(camera.position.y),
                             static_cast<int>(camera.position.z)
-                 ), 10, 60, 20, WHITE);
+                 ), 10, 20, 20, WHITE);
         DrawText(TextFormat("offset %d %d %d",
                             static_cast<int>(world_offset.x),
                             static_cast<int>(world_offset.y),
                             static_cast<int>(world_offset.z)
-                 ), 10, 90, 20, WHITE);
+                 ), 10, 50, 20, WHITE);
 
         if (crashed) {
             DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), Fade(BLACK, 0.5f));

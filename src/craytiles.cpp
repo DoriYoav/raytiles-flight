@@ -51,7 +51,7 @@ namespace {
         raytiles::streaming_config s{};
         if (!c) return s;
         s.rendering_radius = c->rendering_radius;
-        s.update_distance_sq = c->update_height;
+        s.update_distance_sq = c->update_distance_sq;
         s.upload_budget_sec = c->upload_budget_sec;
         s.max_uploads_per_frame = c->max_uploads_per_frame;
         s.near_plane = c->near_plane;
