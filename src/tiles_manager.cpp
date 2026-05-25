@@ -348,25 +348,11 @@ namespace raytiles {
             const int child_x = key.x * 4;
             const int child_z = key.z * 4;
             const int target_zoom = key.zoom + 2;
-            // long if or a loop...
-            if (contains(target_zoom, child_x, child_z) &&
-                contains(target_zoom, child_x + 1, child_z) &&
-                contains(target_zoom, child_x + 2, child_z) &&
-                contains(target_zoom, child_x + 3, child_z) &&
-                contains(target_zoom, child_x, child_z + 1) &&
-                contains(target_zoom, child_x + 1, child_z + 1) &&
-                contains(target_zoom, child_x + 2, child_z + 1) &&
-                contains(target_zoom, child_x + 3, child_z + 1) &&
-                contains(target_zoom, child_x, child_z + 2) &&
-                contains(target_zoom, child_x + 1, child_z + 2) &&
-                contains(target_zoom, child_x + 2, child_z + 2) &&
-                contains(target_zoom, child_x + 3, child_z + 2) &&
-                contains(target_zoom, child_x, child_z + 3) &&
-                contains(target_zoom, child_x + 1, child_z + 3) &&
-                contains(target_zoom, child_x + 2, child_z + 3) &&
-                contains(target_zoom, child_x + 3, child_z + 3)) {
-                return true;
-            }
+            for (int ox = 0; ox < 4; ++ox)
+                for (int oz = 0; oz < 4; ++oz)
+                    if (!contains(target_zoom, child_x + ox, child_z + oz))
+                        return false;
+            return true;
         }
 
         return false;
