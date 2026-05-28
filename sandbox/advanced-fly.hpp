@@ -42,10 +42,14 @@ namespace free_camera {
     public:
         explicit AdvancedFreeCamera() noexcept = default;
 
+        void display_state() {
+            DrawRectangle(5, 10, 300, 100, Fade(BLACK, 0.5f));
+        }
+
         void update(Camera3D &cam, const float dt) noexcept {
             const auto speed = Vector3Length(state_.linear_velocity);
             const auto speed_raio = speed / max_speed;
-            const auto control = std::max(speed_raio * speed_raio, 1.0f);
+            const auto control = std::fmax(speed_raio * speed_raio, 1.0f);
 
             constexpr auto stick_max = 3.0f;
             float targetRoll = 0.0f;
@@ -75,8 +79,7 @@ namespace free_camera {
                 const float rotation_angle = angular_speed * dt;
                 const auto rotation_axis = Vector3Normalize(state_.angular_velocity);
                 const Quaternion delta_rotation = QuaternionFromAxisAngle(rotation_axis, rotation_angle);
-                rotation_ = QuaternionMultiply(delta_rotation, rotation_);
-                rotation_ = QuaternionNormalize(rotation_);
+                rotation_ = QuaternionNormalize(QuaternionMultiply(delta_rotation, rotation_));
 
                 state_.forward = Vector3Normalize(Vector3RotateByQuaternion({0.0f, 0.0f, 1.0f}, rotation_));
                 state_.up = Vector3Normalize(Vector3RotateByQuaternion({0.0f, 1.0f, 0.0f}, rotation_));

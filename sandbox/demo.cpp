@@ -72,13 +72,20 @@ int main() {
     // world.base_zoom_tile_size = 43769;
 
     // The Dolomites
-    // world.anchor_x_tile = 273;
-    // world.anchor_z_tile = 180;
-
+    world.anchor_x_tile = 273;
+    world.anchor_z_tile = 180;
 
     // The Grand Canyon
-    world.anchor_x_tile = 97;
-    world.anchor_z_tile = 200;
+    // world.anchor_x_tile = 97;
+    // world.anchor_z_tile = 200;
+
+    // New Zealand
+    // world.anchor_x_tile = 494;
+    // world.anchor_z_tile = 332;
+
+    // Haway
+    // world.anchor_x_tile = 29;
+    // world.anchor_z_tile = 223;
 
     // Norway
     // world.anchor_x_tile = 265;
@@ -94,6 +101,7 @@ int main() {
 
 
     // Adjust to fit your scene
+    world.base_zoom_tile_size = 64000;
     rendering.skirt_drop = 1000.0f;
     world.skirt_overlap = {
         1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.02f
@@ -123,6 +131,7 @@ int main() {
 
     // Model x_wing = LoadModel("res/x-wing/scene.gltf");
     Model tie = LoadModel("res/tie/scene.gltf");
+    // Model tie = LoadModel("res/drone2/scene.gltf");
     // x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
 
     streamer.set_fog_color(SKYBLUE);
@@ -234,7 +243,7 @@ int main() {
         streamer.draw();
         const Vector3 model_pos = Vector3Add(camera.position, Vector3Scale(forward, 50.0f));
 
-        DrawModelEx(tie, model_pos, rotationAxis, angle, {2.0f, 2.0f, 2.0f}, WHITE);
+        DrawModelEx(tie, model_pos, rotationAxis, angle, {1.0f, 1.0f, 1.0f}, WHITE);
         // if (wireframe) {
         //     streamer.debug_3d();
         // }
