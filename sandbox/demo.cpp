@@ -14,41 +14,7 @@ static std::string required_env(const char *name, std::string_view label) {
     throw std::runtime_error(std::format("missing {} token in options or environment variables", label));
 }
 
-Vector3 get_spline_point(const Vector3 p0, const Vector3 p1, const Vector3 p2, const Vector3 p3, const float t) {
-    const float t2 = t * t;
-    const float t3 = t2 * t;
-
-    Vector3 result;
-    result.x = 0.5f * (2.0f * p1.x + (-p0.x + p2.x) * t + (2.0f * p0.x - 5.0f * p1.x + 4.0f * p2.x - p3.x) * t2 + (-p0.x + 3.0f * p1.x - 3.0f * p2.x + p3.x) *
-                       t3);
-    result.y = 0.5f * (2.0f * p1.y + (-p0.y + p2.y) * t + (2.0f * p0.y - 5.0f * p1.y + 4.0f * p2.y - p3.y) * t2 + (-p0.y + 3.0f * p1.y - 3.0f * p2.y + p3.y) *
-                       t3);
-    result.z = 0.5f * (2.0f * p1.z + (-p0.z + p2.z) * t + (2.0f * p0.z - 5.0f * p1.z + 4.0f * p2.z - p3.z) * t2 + (-p0.z + 3.0f * p1.z - 3.0f * p2.z + p3.z) *
-                       t3);
-
-    return result;
-}
-
 int main() {
-    // Autopilot - Star Ward Scene in the Grand Canyon
-    std::vector<Vector3> path = {
-        {2468.0f, 1339.0f, 380.0f},
-        {1525.0f, 1054.0f, 1230.0f},
-        {509.0f, 963.0f, 2326.0f},
-        {-596.0f, 1012.0f, 2768.0f},
-        {-1493.0f, 1066.0f, 3736.0f},
-        {-2157.0f, 998.0f, 4946.0f},
-        {-2736.0f, 1036.0f, 5688.0f},
-        {-2890.0f, 1121.0f, 6991.0f},
-        {-3367.0f, 1231.0f, 7762.0f},
-        {-13233.0f, 4759.0f, 20554.0f},
-        {-15447.0f, 5597.0f, 23428.0f},
-    };
-    float flight_progress = 0.0f;
-    int step = 0;
-    bool auto_pilot = false;
-
-
     SetTraceLogLevel(LOG_WARNING);
     InitWindow(800, 600, "raytiles");
 
@@ -103,14 +69,10 @@ int main() {
     // Adjust to fit your scene
     world.base_zoom_tile_size = 64000;
     rendering.skirt_drop = 1000.0f;
-    world.skirt_overlap = {
-        1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.02f
-    };
-
+    world.skirt_overlap = {1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.01f, 1.02f};
 
 
     raytiles::streamer streamer(world, streaming, rendering, pool_conf);
-    // streamer.set_normals_scale(5.0f);
 
     Vector3 world_offset = {0.0f, 0.0f, 0.0f};
     constexpr float rebase_threshold = 4096.0f;
@@ -126,19 +88,14 @@ int main() {
     camera.fovy = 60.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    // FreeCamera f(camera);
     free_camera::AdvancedFreeCamera adv_f{};
-
-    // Model x_wing = LoadModel("res/x-wing/scene.gltf");
     Model tie = LoadModel("res/tie/scene.gltf");
-    // Model tie = LoadModel("res/drone2/scene.gltf");
-    // x_wing.transform = MatrixMultiply(MatrixRotateX(10.0f * DEG2RAD), MatrixRotateY(15.0f * DEG2RAD));
 
     streamer.set_fog_color(SKYBLUE);
     streamer.set_ambient_light(Color{200, 200, 200, 255});
     float sun = 1.0f;
-    bool wireframe = true;
-    bool labels = true;
+    bool wireframe = false;
+    bool labels = false;
     bool crashed = false;
 
     // loading loop
@@ -153,38 +110,8 @@ int main() {
         EndDrawing();
     }
 
-
     while (!WindowShouldClose()) {
         const auto dt = GetFrameTime();
-
-        if (auto_pilot && !crashed) {
-            float step_time = 5.0f;
-            flight_progress += dt / step_time;
-
-            if (flight_progress >= 1.0f) {
-                flight_progress -= 1.0f;
-                step++;
-                if (step >= path.size() - 3) step = 0;
-            }
-            // Path waypoints are absolute; convert to user space using the
-            // current world_offset (user = absolute + offset).
-            camera.position = absolute_to_user(get_spline_point(
-                path[step % path.size()],
-                path[(step + 1) % path.size()],
-                path[(step + 2) % path.size()],
-                path[(step + 3) % path.size()],
-                flight_progress
-            ));
-
-            // look ahead...
-            camera.target = absolute_to_user(get_spline_point(
-                path[(step + 1) % path.size()],
-                path[(step + 2) % path.size()],
-                path[(step + 3) % path.size()],
-                path[(step + 4) % path.size()],
-                flight_progress + 0.2f
-            ));
-        }
 
         const auto to_target = camera.target - camera.position;
         const auto forward = Vector3Normalize(to_target);
@@ -197,10 +124,7 @@ int main() {
         Vector3 rotationAxis = {0.0f, 1.0f, 0.0f};
 
 
-        if (!crashed) {
-            // f.update(camera, dt);
-            adv_f.update(camera, dt);
-        }
+        if (!crashed) adv_f.update(camera, dt);
 
         // Large-world rebase: keep the user-space camera close to the origin.
         // Whenever |camera.x| or |camera.z| exceeds the threshold, slide BOTH
@@ -208,23 +132,43 @@ int main() {
         // amount, preserving the absolute camera location (user - offset).
         // In a real game you must apply the same shift to every entity that
         // lives in user space (models, lights, particles, ...).
-        auto rebase_axis = [&](const char axis, float &user, float &target, float &off) {
-            if (user > rebase_threshold) {
-                user -= rebase_threshold;
-                target -= rebase_threshold;
-                off -= rebase_threshold;
-                std::printf("[rebase] %c -= %.0f  user=%.1f offset=%.1f\n",
-                            axis, rebase_threshold, user, off);
-            } else if (user < -rebase_threshold) {
-                user += rebase_threshold;
-                target += rebase_threshold;
-                off += rebase_threshold;
-                std::printf("[rebase] %c += %.0f  user=%.1f offset=%.1f\n",
-                            axis, rebase_threshold, user, off);
-            }
-        };
-        rebase_axis('x', camera.position.x, camera.target.x, world_offset.x);
-        rebase_axis('z', camera.position.z, camera.target.z, world_offset.z);
+        if (camera.position.x > rebase_threshold) {
+            camera.position.x -= rebase_threshold;
+            camera.target.x -= rebase_threshold;
+            world_offset.x -= rebase_threshold;
+        }
+        if (camera.position.x < -rebase_threshold) {
+            camera.position.x += rebase_threshold;
+            camera.target.x += rebase_threshold;
+            world_offset.x += rebase_threshold;
+        }
+        if (camera.position.z > rebase_threshold) {
+            camera.position.z -= rebase_threshold;
+            camera.target.z -= rebase_threshold;
+            world_offset.z -= rebase_threshold;
+        }
+        if (camera.position.z < -rebase_threshold) {
+            camera.position.z += rebase_threshold;
+            camera.target.z += rebase_threshold;
+            world_offset.z += rebase_threshold;
+        }
+        // auto rebase_axis = [&](const char axis, float &user, float &target, float &off) {
+        //     if (user > rebase_threshold) {
+        //         user -= rebase_threshold;
+        //         target -= rebase_threshold;
+        //         off -= rebase_threshold;
+        //         std::printf("[rebase] %c -= %.0f  user=%.1f offset=%.1f\n",
+        //                     axis, rebase_threshold, user, off);
+        //     } else if (user < -rebase_threshold) {
+        //         user += rebase_threshold;
+        //         target += rebase_threshold;
+        //         off += rebase_threshold;
+        //         std::printf("[rebase] %c += %.0f  user=%.1f offset=%.1f\n",
+        //                     axis, rebase_threshold, user, off);
+        //     }
+        // };
+        // rebase_axis('x', camera.position.x, camera.target.x, world_offset.x);
+        // rebase_axis('z', camera.position.z, camera.target.z, world_offset.z);
 
         // Frame inputs are now stable for this frame -> hand them to the
         // streamer once. draw() and ground_height() will reuse these values.
@@ -244,15 +188,15 @@ int main() {
         const Vector3 model_pos = Vector3Add(camera.position, Vector3Scale(forward, 50.0f));
 
         DrawModelEx(tie, model_pos, rotationAxis, angle, {1.0f, 1.0f, 1.0f}, WHITE);
-        // if (wireframe) {
-        //     streamer.debug_3d();
-        // }
+        if (wireframe) {
+            streamer.draw_debug_3d();
+        }
         EndMode3D();
 
-        // if (labels) {
-        //     DrawRectangle(5, 5, 400, 100, Fade(BLACK, 0.5f));
-        //     streamer.debug(camera);
-        // }
+        if (labels) {
+            DrawRectangle(5, 5, 400, 100, Fade(BLACK, 0.5f));
+            streamer.draw_debug_labels();
+        }
 
         // DrawRectangle(5, 550, 600, 40, Fade(BLACK, 0.5f));
         // DrawText("Controls: K to toggle labels, L to toggle wireframe", 10, 560, 20, WHITE);
@@ -276,7 +220,6 @@ int main() {
                 world_offset = {0.0f, 0.0f, 0.0f};
                 camera.position = Vector3{2000.0f, 5000.0f, 2000.0f};
                 camera.target = Vector3{3000.0f, 4750.0f, 3000.0f};
-                // f = FreeCamera(camera);
                 crashed = false;
             }
         }
@@ -288,7 +231,6 @@ int main() {
 
         if (IsKeyPressed(KEY_L)) wireframe = !wireframe;
         if (IsKeyPressed(KEY_K)) labels = !labels;
-        if (IsKeyPressed(KEY_P)) auto_pilot = !auto_pilot;
     }
 
     CloseWindow();

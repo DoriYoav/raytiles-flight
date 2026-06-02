@@ -131,6 +131,14 @@ namespace raytiles {
                                        tile_manager->make_debug_view(last_frustum));
     }
 
+    void streamer::draw_debug_3d() {
+        tiles_renderer::debug_3d(cached_world_offset_, tile_manager->make_debug_view(last_frustum));
+    }
+
+    void streamer::draw_debug_labels() {
+        tiles_renderer::debug(cached_camera_, cached_world_offset_, tile_manager->make_debug_view(last_frustum));
+    }
+
     void streamer::set_ambient_light(const Color color) const { tile_renderer->set_ambient_light(color); }
     void streamer::set_ambient_light(const Vector4 color) const { tile_renderer->set_ambient_light(color); }
     void streamer::set_ambient_light(const float r, const float g, const float b, const float a) const { tile_renderer->set_ambient_light(r, g, b, a); }

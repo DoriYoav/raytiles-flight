@@ -292,6 +292,9 @@ namespace raytiles {
         /// Reuses the camera and `world_offset` cached by `update()`.
         void draw();
 
+        void draw_debug_3d();
+        void draw_debug_labels();
+
         /// Return true for initial loading only
         [[nodiscard]] bool is_loading() const;
 

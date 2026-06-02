@@ -4,6 +4,9 @@
 #include <ranges>
 #include <utility>
 #include <chrono>
+#include <unordered_map>
+#include <vector>
+#include <ranges>
 #include "detail/utils.hpp"
 
 using namespace std::chrono_literals;
