@@ -199,7 +199,7 @@ int main() {
         }
 
         DrawRectangle(5, 550, 600, 40, Fade(BLACK, 0.5f));
-        DrawText("Controls: K to toggle labels, L to toggle wireframe", 10, 560, 20, WHITE);
+        DrawText("Controls:  K  to toggle labels,  L  to toggle wireframe,  +/-  throttle", 10, 560, 10, WHITE);
 
         DrawRectangle(5, 10, 280, 80, Fade(BLACK, 0.5f));
         DrawText(TextFormat("user P %d %d %d",
