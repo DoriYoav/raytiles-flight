@@ -73,7 +73,7 @@ struct Gate {
 };
 
 enum class State { Idle, Racing, Finished };
-enum class Mode { Competition, Infinite };
+enum class Mode { Competition, Infinite, Target };
 
 class Race {
 public:
@@ -83,6 +83,7 @@ public:
     static constexpr float MAX_GAP = 1400.0f;
     static constexpr float MAX_TURN = 80.0f * DEG2RAD; // max heading change per leg
     static constexpr float GATE_RADIUS = 40.0f; // ring radius (tight = expert)
+    static constexpr float CORE_RADIUS = 30.0f; // Target mode: solid + hittable filled core
     static constexpr float AGL_MIN = 100.0f;    // gate height above terrain (randomised per gate)
     static constexpr float AGL_MAX = 300.0f;
     static constexpr float PROVISIONAL_Y = 4500.0f; // shown until terrain height resolves
@@ -125,6 +126,14 @@ public:
         state_ = State::Idle;
     }
 
+    // Target mode: the active target was shot down. Advance; finish on the last one.
+    void destroy_active() {
+        if (state_ != State::Racing) return;
+        if (active_ >= static_cast<int>(gates_.size())) return;
+        ++active_;
+        if (active_ >= static_cast<int>(gates_.size())) finish();
+    }
+
     // Resolve altitude for any unresolved gate. `ground_at(absX, absZ)` returns the
     // absolute terrain Y under that point, or nullopt if its tile isn't loaded yet.
     template <class GroundFn>
@@ -141,6 +150,7 @@ public:
         if (state_ != State::Racing) return;
         elapsed_ += dt;
         if (active_ >= static_cast<int>(gates_.size())) return;
+        if (mode_ == Mode::Target) return; // Target: advance only via destroy_active()
         const Gate &g = gates_[active_];
         if (!g.y.has_value()) return; // can't pass an unresolved gate
         const Vector3 center{g.x, *g.y, g.z};
@@ -150,8 +160,7 @@ public:
                 // keep a buffer of N gates ahead so the course never ends
                 while (static_cast<int>(gates_.size()) - active_ < N) append_gate();
             } else if (active_ >= static_cast<int>(gates_.size())) {
-                state_ = State::Finished;
-                if (!best_ || elapsed_ < *best_) best_ = elapsed_;
+                finish();
             }
         }
     }
@@ -178,10 +187,25 @@ public:
             if (resolved && i == active_) {
                 draw_ring(center, g.dir, GATE_RADIUS * 0.6f, GOLD); // inner emphasis on active gate
             }
+
+            // Target mode: a solid filled core — the thing you shoot / can crash into.
+            if (mode_ == Mode::Target && resolved) {
+                if (i == active_) {
+                    DrawSphere(center, CORE_RADIUS, Fade(RED, 0.85f));
+                    DrawSphereWires(center, CORE_RADIUS * 1.02f, 8, 12, Fade(ORANGE, 0.9f));
+                } else {
+                    DrawSphere(center, CORE_RADIUS, Fade(MAROON, 0.30f)); // dim upcoming
+                }
+            }
         }
     }
 
 private:
+    void finish() {
+        state_ = State::Finished;
+        if (!best_ || elapsed_ < *best_) best_ = elapsed_;
+    }
+
     // Append one gate ahead of the generator frontier, and make the previous last
     // gate face this new one (so every ring points at the next — course direction).
     void append_gate() {
