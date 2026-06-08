@@ -21,8 +21,8 @@ You need a Mac and a few free developer tools. Open **Terminal** and run:
 ## Get the game and run it
 
 ```
-git clone <REPO_URL>
-cd raytiles
+git clone https://github.com/DoriYoav/raytiles-flight.git
+cd raytiles-flight
 ./fly.command
 ```
 
