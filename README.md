@@ -1,3 +1,45 @@
+# Raytiles Flight Game ✈️🎯
+
+> A fork of the [**raytiles**](https://github.com/ziv/raytiles) project, where I **gamified the
+> flight experience** — adding timed **racing courses** and **target shooting** to enhance flying
+> over real-world terrain.
+
+Fly a Star Wars ship over the real **Mount Everest** (the map is genuine satellite + elevation
+data): lean into your maneuvers, race through floating checkpoint courses against the clock,
+and blast targets — with blaster and explosion sound. Modes: **Cruise · Competition · Infinite ·
+Target Course** (press **M** to switch).
+
+## Play it
+
+### 🍎 macOS — build from source
+You need a Mac and a few free tools. In **Terminal**:
+```bash
+xcode-select --install            # Apple developer tools (compiler + git)
+# install Homebrew if needed:  https://brew.sh
+brew install cmake openssl@3
+git clone https://github.com/DoriYoav/raytiles-flight.git
+cd raytiles-flight
+./fly.command
+```
+The first run compiles the game (downloads the graphics library automatically — a few minutes,
+needs internet). After that, `./fly.command` launches in seconds (or double-click `fly.command`
+in Finder; first time, right-click → **Open** → **Open** to clear the macOS warning).
+
+### 🪟 Windows — download and run (no tools needed)
+1. Open the [**Releases**](https://github.com/DoriYoav/raytiles-flight/releases) page.
+2. Download **`raytiles-flight-windows.zip`** from the latest "Windows build".
+3. Unzip it and double-click **`demo.exe`**. (Windows SmartScreen may warn it's unrecognized →
+   click **More info → Run anyway** — only needed once. x64 Windows.)
+
+> You must be **online** to play in either case — the map streams from the internet in real time.
+
+## Controls
+- **Arrows** pitch/roll · **Q / E** yaw · **D / A** speed up / down
+- **S** fire lasers · **M** change mode · **G** start / restart the mode
+- **C** change ship · **P** fullscreen · **R** reset after a crash · **Esc** quit
+
+---
+
 # Raytiles
 
 <div align="center">

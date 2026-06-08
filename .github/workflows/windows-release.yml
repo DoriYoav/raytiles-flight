@@ -1,0 +1,91 @@
+name: Windows Release
+
+# Builds the game for Windows in the cloud and publishes a ready-to-run zip
+# (demo.exe + assets + OpenSSL DLLs) as a "windows-build" release, so a
+# non-technical user can just download, unzip, and double-click demo.exe.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - "README.md"
+      - "PLAYING.md"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (vcpkg toolchain provides OpenSSL)
+        run: >
+          cmake -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+
+      - name: Build demo
+        run: cmake --build build --config Release --target demo
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $dist = "dist/raytiles-flight"
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+          $exe = Get-ChildItem -Path build -Recurse -Filter demo.exe | Select-Object -First 1
+          if (-not $exe) { throw "demo.exe not found under build/" }
+          Copy-Item $exe.FullName "$dist/demo.exe"
+          Copy-Item -Recurse res "$dist/res"
+          Copy-Item -Recurse assets "$dist/assets"
+
+          # Bundle the OpenSSL runtime DLLs the exe needs (search common locations).
+          $names = @("libssl-3-x64.dll","libcrypto-3-x64.dll","libssl-3.dll","libcrypto-3.dll")
+          $dirs  = @(
+            "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin",
+            "C:\Program Files\OpenSSL\bin",
+            "C:\Program Files\OpenSSL-Win64\bin",
+            $exe.DirectoryName
+          )
+          foreach ($n in $names) {
+            foreach ($d in $dirs) {
+              $p = Join-Path $d $n
+              if (Test-Path $p) { Copy-Item $p "$dist/" -Force; break }
+            }
+          }
+          # Fallback: copy any libssl/libcrypto DLLs found under Program Files.
+          Get-ChildItem "C:\Program Files" -Recurse -ErrorAction SilentlyContinue `
+            -Include "libssl-3*.dll","libcrypto-3*.dll" |
+            Select-Object -First 4 | ForEach-Object { Copy-Item $_.FullName "$dist/" -Force -ErrorAction SilentlyContinue }
+
+          Set-Content "$dist/HOW-TO-PLAY.txt" @"
+          Double-click demo.exe to play. You must be ONLINE (the map streams from the internet).
+          If Windows warns the app is unrecognized: click "More info" then "Run anyway".
+
+          Controls:
+            Arrows  pitch / roll      Q / E   yaw         D / A   speed up / down
+            S       fire lasers       M       change mode  G      start / restart mode
+            C       change ship       P       fullscreen   R      reset after crash   Esc  quit
+          "@
+
+          Compress-Archive -Path "$dist/*" -DestinationPath "raytiles-flight-windows.zip" -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raytiles-flight-windows
+          path: raytiles-flight-windows.zip
+
+      - name: Publish/refresh Windows release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: windows-build
+          name: Windows build (latest)
+          body: |
+            Ready-to-run Windows build. Download `raytiles-flight-windows.zip`, unzip,
+            and double-click `demo.exe`. You must be online to play.
+          files: raytiles-flight-windows.zip

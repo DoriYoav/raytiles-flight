@@ -9,10 +9,12 @@
 #include "race.hpp"
 
 static std::string required_env() {
+    // The default ArcGIS imagery needs no token; fall back to a dummy so the game
+    // runs on a plain double-click (no MAPBOX_TOKEN env var required).
     if (const char *value = std::getenv("MAPBOX_TOKEN"); value && *value) {
         return value;
     }
-    throw std::runtime_error("missing Mapbox token in options or environment variables");
+    return "dummy";
 }
 
 struct Ship {
