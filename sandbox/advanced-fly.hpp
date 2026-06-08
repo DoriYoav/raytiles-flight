@@ -27,7 +27,7 @@ namespace free_camera {
     };
 
     class AdvancedFreeCamera {
-        float max_speed = 300.0f;
+        float max_speed = 600.0f;
         Quaternion rotation_ = QuaternionIdentity();
         CameraInputs inputs_ = {0.0f, 0.0f, 0.0f};
         CameraState state_ = {
@@ -41,6 +41,27 @@ namespace free_camera {
 
     public:
         explicit AdvancedFreeCamera() noexcept = default;
+
+        [[nodiscard]] Quaternion orientation() const noexcept { return rotation_; }
+        [[nodiscard]] CameraInputs inputs()    const noexcept { return inputs_; }
+        [[nodiscard]] float speed()            const noexcept { return state_.velocity; }
+        [[nodiscard]] float top_speed()        const noexcept { return max_speed; }
+
+        // Restore the flight state to construction defaults. Only meant to be called
+        // on an explicit reset (e.g. starting/restarting a race) — update() is unchanged,
+        // so normal per-frame flight behaviour is unaffected.
+        void reset() noexcept {
+            rotation_ = QuaternionIdentity();
+            inputs_ = {0.0f, 0.0f, 0.0f};
+            state_ = CameraState{
+                .forward = {0.0f, 0.0f, 1.0f},
+                .up = {0.0f, 1.0f, 0.0f},
+                .right = {-1.0f, 0.0f, 0.0f},
+                .linear_velocity = {0.0f, 0.0f, 0.0f},
+                .angular_velocity = {0.0f, 0.0f, 0.0f},
+                .velocity = 0.0f,
+            };
+        }
 
         void display_state() {
             DrawRectangle(5, 10, 300, 100, Fade(BLACK, 0.5f));
@@ -89,8 +110,9 @@ namespace free_camera {
 
             // linear velocity
 
-            if (IsKeyDown(KEY_EQUAL)) state_.velocity += 0.1;
-            if (IsKeyDown(KEY_MINUS)) state_.velocity -= 0.1;
+            constexpr float throttle_accel = 150.0f; // m/s^2, frame-rate independent
+            if (IsKeyDown(KEY_D)) state_.velocity += throttle_accel * dt;
+            if (IsKeyDown(KEY_A)) state_.velocity -= throttle_accel * dt;
             state_.velocity = std::clamp(state_.velocity, 0.0f, max_speed);
 
             // camera update
